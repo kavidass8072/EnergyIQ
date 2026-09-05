@@ -1,0 +1,55 @@
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+*.manifest
+*.spec
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Frontend dependencies & builds
+frontend/node_modules/
+node_modules/
+frontend/dist/
+dist/
+build/
+.vite/
+.cache/
+
+# Databases & runtime data
+*.db
+*.sqlite
+*.sqlite3
+backend/data/app.db
+data/app.db
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS temporary files
+.DS_Store
+Thumbs.db
+
+scratch/
