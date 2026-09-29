@@ -47,3 +47,20 @@ def test_failure_streaming_invalid_scenario():
     headers = {"Authorization": f"Bearer {payload}"}
     res = client.post("/api/streaming/scenario", json={"scenario": "NON_EXISTENT_SCENARIO"}, headers=headers)
     assert res.status_code == 400
+
+def test_failure_negative_telemetry_bounds_sanitization():
+    raw_event = {"equipment_id": "HVAC-01", "energy_kwh": -150.5, "temperature": -300.0}
+    valid, cleaned, issues = validate_and_clean_telemetry(raw_event)
+    assert cleaned["energy_kwh"] >= 0.0
+    assert cleaned["temperature"] >= 0.0
+
+def test_failure_missing_auth_header_denied():
+    res = client.get("/api/auth/me")
+    assert res.status_code == 401
+
+def test_failure_invalid_export_resource():
+    payload = jwt.encode({"sub": "admin", "role": "ADMIN", "user_id": 1, "exp": int(time.time() + 3600)}, JWT_SECRET, algorithm=ALGORITHM)
+    headers = {"Authorization": f"Bearer {payload}"}
+    res = client.get("/api/export/unknown_resource_name", headers=headers)
+    assert res.status_code == 400
+

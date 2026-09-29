@@ -1,6 +1,6 @@
 # ⚡ EnergyIQ — Commercial Campus Energy Intelligence & Predictive Maintenance Platform
 
-[![PyTest Suite](https://img.shields.io/badge/PyTest-75%2F75%20PASSED-brightgreen.svg)](file:///E:/coe%20project/reports/full_system_validation_report.md)
+[![PyTest Suite](https://img.shields.io/badge/PyTest-78%2F78%20PASSED-brightgreen.svg)](file:///E:/coe%20project/docs/testing.md)
 [![Vite Build](https://img.shields.io/badge/Vite%20Build-PASS%20(2179%20modules)-success.svg)](file:///E:/coe%20project/frontend)
 [![Python](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-3.0-009688.svg)](https://fastapi.tiangolo.com/)

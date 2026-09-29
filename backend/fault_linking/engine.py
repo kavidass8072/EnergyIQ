@@ -13,10 +13,24 @@ FAULT_CATEGORIES = [
     "Unknown Anomaly"
 ]
 
+# 10 Physical Equipment Fault Categories mapped to physical telemetry signals
+FAULT_CATEGORIES = [
+    "Motor Inefficiency",
+    "Mechanical Resistance",
+    "Sensor Malfunction",
+    "Unexpected Standby Consumption",
+    "Excessive Operating Duration",
+    "Cooling/Heating Inefficiency",
+    "Production-Related Abnormality",
+    "Maintenance Overdue",
+    "Electrical Abnormality",
+    "Unknown Anomaly"
+]
+
 def analyze_and_link_fault(row: Dict[str, Any], recent_anomalies_count: int = 1) -> Dict[str, Any]:
     """
     Evaluates telemetry context and links detected energy anomaly to a likely equipment fault,
-    assigns confidence score, generates evidence, and provides recommended maintenance actions.
+    assigns confidence score, generates physical evidence JSON, and provides recommended maintenance actions.
     """
     energy = row.get("energy_kwh", 0.0)
     expected = row.get("rolling_mean_24h", energy)
@@ -36,12 +50,12 @@ def analyze_and_link_fault(row: Dict[str, Any], recent_anomalies_count: int = 1)
     evidence: List[str] = []
     action = "Inspect equipment operational parameters and check sensor calibration."
     
-    # Evidence baseline facts
+    # Base physical telemetry evidence facts
     evidence.append(f"Actual energy: {energy:.2f} kWh (Expected: {expected:.2f} kWh, Deviation: +{dev_pct:.1f}%)")
     evidence.append(f"Operating State: {state} | Production Output: {prod:.1f} units")
     evidence.append(f"Maintenance History: {maint_days} days since last recorded service")
     
-    # Rule 1: Standby Leakage / Energy while OFF
+    # Rule 1: Standby Leakage / Phantom Power draw while OFF
     if state == "OFF" and energy > 2.0:
         fault_type = "Unexpected Standby Consumption"
         confidence = min(98.0, 75.0 + (energy * 3.0))
@@ -49,14 +63,14 @@ def analyze_and_link_fault(row: Dict[str, Any], recent_anomalies_count: int = 1)
         evidence.append("Potential causes: Standby electrical leakage, short circuit, or state sensor failure.")
         action = "Check physical power disconnects, inspect relays, and verify telemetry state sensor wiring."
         
-    # Rule 2: Sensor malfunction (unrealistic zero or NaN values)
+    # Rule 2: Sensor Malfunction (0 kW draw recorded while ON with active output)
     elif energy == 0.0 and state == "ON" and prod > 20.0:
         fault_type = "Sensor Malfunction"
         confidence = 99.0
         evidence.append("Energy consumption reads 0.0 kWh while equipment is reported ON with active production output.")
         action = "Recalibrate or replace current transformer (CT) energy sensor."
         
-    # Rule 3: Electrical Spikes / Extreme Transient Outliers (> 65% surge)
+    # Rule 3: Extreme Electrical Spikes (> 65% energy surge under normal load)
     elif dev_pct > 65.0:
         fault_type = "Electrical Abnormality"
         confidence = min(98.0, 80.0 + min(18.0, dev_pct * 0.1))

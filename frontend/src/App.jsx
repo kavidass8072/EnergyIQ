@@ -5,6 +5,7 @@ import Toast from './components/Toast';
 import AlertDetailModal from './components/AlertDetailModal';
 import DemoControlPanel from './components/DemoControlPanel';
 import LoginView from './components/LoginView';
+import ErrorBoundary from './components/ErrorBoundary';
 
 import DashboardView from './views/DashboardView';
 import LiveEnergyView from './views/LiveEnergyView';
@@ -233,121 +234,123 @@ export default function App() {
                 <p className="text-xs">Connecting to FastAPI Backend & Telemetry Pipeline...</p>
               </div>
             ) : (
-              <Suspense fallback={
-                <div className="h-64 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-col items-center justify-center space-y-3 text-slate-500 font-semibold">
-                  <RefreshCw className="w-8 h-8 text-red-600 animate-spin" />
-                  <p className="text-xs">Loading EnergyIQ View Module...</p>
-                </div>
-              }>
-                {/* 1. Dashboard Overview Tab */}
-                {activeTab === 'overview' && (
-                  <DashboardView
-                    summary={summary}
-                    powerFlow={powerFlow}
-                    equipment={equipment}
-                    alerts={alerts}
-                    onInspectEquipment={handleInspectEquipment}
-                    onInspectAlert={(al) => setSelectedAlert(al)}
-                    onRefresh={loadDashboardData}
-                    autoRefresh={autoRefresh}
-                    setAutoRefresh={setAutoRefresh}
-                    lastUpdated={lastUpdated}
-                  />
-                )}
+              <ErrorBoundary key={activeTab}>
+                <Suspense fallback={
+                  <div className="h-64 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-col items-center justify-center space-y-3 text-slate-500 font-semibold">
+                    <RefreshCw className="w-8 h-8 text-red-600 animate-spin" />
+                    <p className="text-xs">Loading EnergyIQ View Module...</p>
+                  </div>
+                }>
+                  {/* 1. Dashboard Overview Tab */}
+                  {activeTab === 'overview' && (
+                    <DashboardView
+                      summary={summary}
+                      powerFlow={powerFlow}
+                      equipment={equipment}
+                      alerts={alerts}
+                      onInspectEquipment={handleInspectEquipment}
+                      onInspectAlert={(al) => setSelectedAlert(al)}
+                      onRefresh={loadDashboardData}
+                      autoRefresh={autoRefresh}
+                      setAutoRefresh={setAutoRefresh}
+                      lastUpdated={lastUpdated}
+                    />
+                  )}
 
-                {/* 2. Live Energy Tab */}
-                {activeTab === 'live-energy' && (
-                  <LiveEnergyView
-                    summary={summary}
-                    powerFlow={powerFlow}
-                    equipment={equipment}
-                  />
-                )}
+                  {/* 2. Live Energy Tab */}
+                  {activeTab === 'live-energy' && (
+                    <LiveEnergyView
+                      summary={summary}
+                      powerFlow={powerFlow}
+                      equipment={equipment}
+                    />
+                  )}
 
-                {/* 3. Equipment & Health Tab */}
-                {activeTab === 'equipment' && (
-                  <EquipmentView
-                    equipmentList={equipment}
-                    selectedEquipmentId={selectedEquipmentId}
-                    onSelectEquipment={(id) => setSelectedEquipmentId(id)}
-                    onInspectAlert={(al) => setSelectedAlert(al)}
-                  />
-                )}
+                  {/* 3. Equipment & Health Tab */}
+                  {activeTab === 'equipment' && (
+                    <EquipmentView
+                      equipmentList={equipment}
+                      selectedEquipmentId={selectedEquipmentId}
+                      onSelectEquipment={(id) => setSelectedEquipmentId(id)}
+                      onInspectAlert={(al) => setSelectedAlert(al)}
+                    />
+                  )}
 
-                {/* 4. Alert Center Tab */}
-                {activeTab === 'alerts' && (
-                  <AlertsView
-                    alerts={alerts}
-                    onInspectAlert={(al) => setSelectedAlert(al)}
-                  />
-                )}
+                  {/* 4. Alert Center Tab */}
+                  {activeTab === 'alerts' && (
+                    <AlertsView
+                      alerts={alerts}
+                      onInspectAlert={(al) => setSelectedAlert(al)}
+                    />
+                  )}
 
-                {/* 5. Analytics Tab */}
-                {activeTab === 'analytics' && (
-                  <AnalyticsView />
-                )}
+                  {/* 5. Analytics Tab */}
+                  {activeTab === 'analytics' && (
+                    <AnalyticsView />
+                  )}
 
-                {/* 6. Maintenance Tab */}
-                {activeTab === 'maintenance' && (
-                  <MaintenanceView showToast={showToast} />
-                )}
+                  {/* 6. Maintenance Tab */}
+                  {activeTab === 'maintenance' && (
+                    <MaintenanceView showToast={showToast} />
+                  )}
 
-                {/* 6b. AI Insights Tab */}
-                {activeTab === 'ai-insights' && (
-                  <AIInsightsView
-                    onInspectEquipment={handleInspectEquipment}
-                    onInspectAlert={(al) => setSelectedAlert(al)}
-                  />
-                )}
+                  {/* 6b. AI Insights Tab */}
+                  {activeTab === 'ai-insights' && (
+                    <AIInsightsView
+                      onInspectEquipment={handleInspectEquipment}
+                      onInspectAlert={(al) => setSelectedAlert(al)}
+                    />
+                  )}
 
-                {/* 7. ML Evaluation Tab */}
-                {activeTab === 'evaluation' && (
-                  <EvaluationView />
-                )}
+                  {/* 7. ML Evaluation Tab */}
+                  {activeTab === 'evaluation' && (
+                    <EvaluationView />
+                  )}
 
-                {/* 7b. Benchmark Evaluation Tab */}
-                {activeTab === 'benchmark' && (
-                  <BenchmarkView />
-                )}
+                  {/* 7b. Benchmark Evaluation Tab */}
+                  {activeTab === 'benchmark' && (
+                    <BenchmarkView />
+                  )}
 
-                {/* 7c. Data Quality Tab */}
-                {activeTab === 'data-quality' && (
-                  <DataQualityView />
-                )}
+                  {/* 7c. Data Quality Tab */}
+                  {activeTab === 'data-quality' && (
+                    <DataQualityView />
+                  )}
 
-                {/* 7d. Model Registry Tab */}
-                {activeTab === 'model-registry' && (
-                  <ModelRegistryView showToast={showToast} />
-                )}
+                  {/* 7d. Model Registry Tab */}
+                  {activeTab === 'model-registry' && (
+                    <ModelRegistryView showToast={showToast} />
+                  )}
 
-                {/* 8. Edge Cases Workbench Tab */}
-                {activeTab === 'edge-cases' && (
-                  <EdgeCaseWorkbenchView />
-                )}
+                  {/* 8. Edge Cases Workbench Tab */}
+                  {activeTab === 'edge-cases' && (
+                    <EdgeCaseWorkbenchView />
+                  )}
 
-                {/* 8b. Streaming Health Tab */}
-                {activeTab === 'streaming-health' && (
-                  <StreamingHealthView showToast={showToast} />
-                )}
+                  {/* 8b. Streaming Health Tab */}
+                  {activeTab === 'streaming-health' && (
+                    <StreamingHealthView showToast={showToast} />
+                  )}
 
-                {/* 9. Executive Reports Tab */}
-                {activeTab === 'reports' && (
-                  <ReportsView />
-                )}
+                  {/* 9. Executive Reports Tab */}
+                  {activeTab === 'reports' && (
+                    <ReportsView />
+                  )}
 
-                {/* 10. System Settings Tab */}
-                {activeTab === 'settings' && (
-                  <SettingsView showToast={showToast} />
-                )}
+                  {/* 10. System Settings Tab */}
+                  {activeTab === 'settings' && (
+                    <SettingsView showToast={showToast} />
+                  )}
 
-                {/* 11. Demo Controls Tab */}
-                {activeTab === 'demo' && (
-                  <DemoControlPanel
-                    onDataUpdated={loadDashboardData}
-                    showToast={showToast}
-                  />
-                )}
-              </Suspense>
+                  {/* 11. Demo Controls Tab */}
+                  {activeTab === 'demo' && (
+                    <DemoControlPanel
+                      onDataUpdated={loadDashboardData}
+                      showToast={showToast}
+                    />
+                  )}
+                </Suspense>
+              </ErrorBoundary>
             )}
           </main>
         </div>

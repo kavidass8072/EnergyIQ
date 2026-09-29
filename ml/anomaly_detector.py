@@ -67,33 +67,37 @@ class ContextualIsolationForestDetector:
             
         X = df[self.feature_cols].copy().fillna(0.0)
         
-        # Raw decision function score
+        # Step 1: Compute raw decision function scores from Scikit-Learn Isolation Forest.
+        # Negative scores indicate anomalous points isolated close to tree roots; positive scores indicate normal points.
         raw_scores = self.model.decision_function(X)
         min_s, max_s = raw_scores.min(), raw_scores.max()
         iso_score_norm = (max_s - raw_scores) / (max_s - min_s) * 100.0 if max_s != min_s else np.zeros(len(df))
         
-        # Contextual signal from historical deviation and OFF-state leakage
+        # Step 2: Calculate contextual domain signal:
+        # - OFF State Phantom Draw: State is OFF but energy_kwh > 2.0 kW (hard fault override = 95.0%).
+        # - Operating State Deviation: Scaled percentage deviation relative to 24h rolling baseline.
         context_signal = np.where(
             df['operating_state'] == 'OFF',
             np.where(df['energy_kwh'] > 2.0, 95.0, 0.0),
             np.maximum(0.0, df['historical_dev_pct'] * 1.5)
         )
         
-        # Combined anomaly score
+        # Step 3: Combine statistical Isolation Forest score (30% weight) with contextual baseline signal (70% weight).
+        # This hybrid scoring prevents false positives during legitimate peak production hours.
         combined_scores = np.clip(iso_score_norm * 0.3 + context_signal * 0.7, 0.0, 100.0)
         df['anomaly_score'] = np.round(combined_scores, 2)
         
-        # Thresholds loading
+        # Step 4: Load dynamic severity thresholds from config (or defaults).
         thresh = load_threshold_config()
         t_low = thresh.get("LOW", 50.0)
         t_med = thresh.get("MEDIUM", 70.0)
         t_high = thresh.get("HIGH", 82.0)
         t_crit = thresh.get("CRITICAL", 92.0)
         
-        # Binary prediction (1 if score >= t_low, else 0)
+        # Step 5: Assign binary prediction flag (1 = Anomaly Candidate, 0 = Normal Operation)
         df['model_pred'] = (df['anomaly_score'] >= t_low).astype(int)
         
-        # Severity classification
+        # Step 6: Categorize severity tier based on composite score thresholds
         conditions = [
             (df['anomaly_score'] >= t_crit),
             (df['anomaly_score'] >= t_high),
