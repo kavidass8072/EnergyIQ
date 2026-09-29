@@ -14,7 +14,11 @@ import {
   Sparkles,
   Activity,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Database,
+  ShieldCheck,
+  Layers,
+  Radio
 } from 'lucide-react';
 
 export default function Sidebar({ 
@@ -24,8 +28,23 @@ export default function Sidebar({
   isCollapsed, 
   setIsCollapsed,
   isMobileOpen,
-  setIsMobileOpen
+  setIsMobileOpen,
+  currentUser
 }) {
+  const role = currentUser?.role || 'ADMIN';
+
+  // Role Permissions filter
+  const isAllowed = (id) => {
+    if (role === 'ADMIN') return true;
+    if (role === 'FACILITY_OPERATOR') {
+      return ['overview', 'live-energy', 'equipment', 'alerts', 'maintenance', 'streaming-health', 'reports', 'settings', 'demo'].includes(id);
+    }
+    if (role === 'TECHNICAL_ENGINEER') {
+      return ['overview', 'equipment', 'alerts', 'analytics', 'ai-insights', 'evaluation', 'benchmark', 'data-quality', 'model-registry', 'edge-cases', 'reports', 'settings'].includes(id);
+    }
+    return true;
+  };
+
   const navGroups = [
     {
       title: 'MONITOR',
@@ -34,7 +53,7 @@ export default function Sidebar({
         { id: 'live-energy', label: 'Live Energy', icon: Zap },
         { id: 'equipment', label: 'Equipment', icon: Cpu },
         { id: 'alerts', label: 'Alerts', icon: ShieldAlert, badge: activeAlertsCount },
-      ]
+      ].filter(item => isAllowed(item.id))
     },
     {
       title: 'INTELLIGENCE',
@@ -42,24 +61,28 @@ export default function Sidebar({
         { id: 'analytics', label: 'Analytics', icon: BarChart3 },
         { id: 'ai-insights', label: 'AI Insights', icon: Sparkles },
         { id: 'evaluation', label: 'ML Evaluation', icon: CheckCircle2 },
+        { id: 'benchmark', label: 'Benchmark ML', icon: Database },
+        { id: 'data-quality', label: 'Data Quality', icon: ShieldCheck },
+        { id: 'model-registry', label: 'Model Registry', icon: Layers },
         { id: 'edge-cases', label: 'Edge Cases', icon: FlaskConical },
-      ]
+      ].filter(item => isAllowed(item.id))
     },
     {
       title: 'OPERATIONS',
       items: [
         { id: 'maintenance', label: 'Maintenance', icon: Wrench },
+        { id: 'streaming-health', label: 'Streaming Health', icon: Radio },
         { id: 'reports', label: 'Reports', icon: FileText },
         { id: 'demo', label: 'Demo Center', icon: Sliders, highlight: true },
-      ]
+      ].filter(item => isAllowed(item.id))
     },
     {
       title: 'SYSTEM',
       items: [
         { id: 'settings', label: 'Settings', icon: Settings },
-      ]
+      ].filter(item => isAllowed(item.id))
     }
-  ];
+  ].filter(group => group.items.length > 0);
 
   const handleNavClick = (id) => {
     setActiveTab(id);
@@ -68,7 +91,6 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Mobile Backdrop Overlay */}
       {isMobileOpen && (
         <div 
           onClick={() => setIsMobileOpen(false)}
@@ -90,7 +112,7 @@ export default function Sidebar({
                 <h1 className="font-extrabold text-base tracking-tight text-slate-900 flex items-center gap-0.5">
                   Energy<span className="text-red-600">IQ</span>
                 </h1>
-                <p className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase">Campus SaaS</p>
+                <p className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase">Campus SaaS v2.5</p>
               </div>
             </div>
           )}
@@ -139,7 +161,6 @@ export default function Sidebar({
                     
                     {!isCollapsed && <span className="truncate">{item.label}</span>}
 
-                    {/* Alert Badge */}
                     {item.badge > 0 && (
                       <span className={`ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-black ${
                         isCollapsed ? 'absolute top-1 right-1' : ''
@@ -154,13 +175,13 @@ export default function Sidebar({
           ))}
         </nav>
 
-        {/* Footer System Status */}
+        {/* Footer Role Badge */}
         {!isCollapsed && (
           <div className="p-3 m-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center gap-2.5">
             <Activity className="w-4 h-4 text-emerald-600 animate-pulse" />
             <div className="text-[11px]">
-              <p className="font-bold text-slate-800">FastAPI ML Engine</p>
-              <p className="text-[10px] text-emerald-600 font-semibold">● 60D Telemetry Active</p>
+              <p className="font-bold text-slate-800">Role: <span className="text-red-600">{role}</span></p>
+              <p className="text-[10px] text-emerald-600 font-semibold">● RBAC Active</p>
             </div>
           </div>
         )}

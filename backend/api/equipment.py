@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from typing import Optional, List
 from backend.database.db import get_connection
 
 router = APIRouter(prefix="/api/equipment", tags=["equipment"])
@@ -8,7 +9,6 @@ def get_all_equipment():
     conn = get_connection()
     cursor = conn.cursor()
     
-    # Get latest record for each equipment
     cursor.execute("""
         SELECT t.equipment_id, t.equipment_type, t.operating_state, t.energy_kwh,
                t.production_output, t.temperature, t.maintenance_days, t.maintenance_status,
@@ -23,7 +23,6 @@ def get_all_equipment():
     """)
     equipment_rows = [dict(r) for r in cursor.fetchall()]
     
-    # Enrich with latest active alert if any and calculate Equipment Health Score (0-100)
     for eq in equipment_rows:
         cursor.execute("""
             SELECT likely_fault, fault_confidence, severity
@@ -41,22 +40,17 @@ def get_all_equipment():
             eq["fault_confidence"] = None
             eq["alert_severity"] = "NORMAL"
 
-        # Health score calculation
         sev = eq["alert_severity"]
         anomaly_score = float(eq.get("anomaly_score") or 0.0)
         maint_days = int(eq.get("maintenance_days") or 0)
 
         deduction = 0
-        if sev == "CRITICAL":
-            deduction += 38
-        elif sev == "HIGH":
-            deduction += 24
-        elif sev == "MEDIUM":
-            deduction += 12
+        if sev == "CRITICAL": deduction += 38
+        elif sev == "HIGH": deduction += 24
+        elif sev == "MEDIUM": deduction += 12
 
         deduction += min(30, int(anomaly_score * 35))
-        if maint_days > 60:
-            deduction += 10
+        if maint_days > 60: deduction += 10
 
         health_score = max(25, 100 - deduction)
         eq["health_score"] = health_score
@@ -90,9 +84,8 @@ def get_equipment_history(equipment_id: str, hours: int = 72):
     if not rows:
         raise HTTPException(status_code=404, detail="Equipment not found")
         
-    rows.reverse() # chronological
+    rows.reverse()
     
-    # Compute rolling expected energy for chart visualization
     energies = [r["energy_kwh"] for r in rows]
     for i in range(len(rows)):
         start = max(0, i - 24)
@@ -100,3 +93,41 @@ def get_equipment_history(equipment_id: str, hours: int = 72):
         rows[i]["expected_kwh"] = round(expected, 2)
         
     return {"equipment_id": equipment_id, "history": rows}
+
+@router.get("/{equipment_id}/health-history")
+def get_equipment_health_history(equipment_id: str, days: int = 30):
+    conn = get_connection()
+    cursor = conn.cursor()
+    hours = days * 24
+    
+    cursor.execute("""
+        SELECT timestamp, energy_kwh, operating_state, anomaly_score, severity, is_anomaly
+        FROM telemetry
+        WHERE equipment_id = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """, (equipment_id, hours))
+    
+    rows = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+    
+    if not rows:
+        raise HTTPException(status_code=404, detail="Equipment not found")
+        
+    rows.reverse()
+    
+    # Calculate health score trend timeline
+    trend = []
+    for r in rows[::6]: # 6-hour sampled resolution
+        score = float(r.get("anomaly_score") or 0.0)
+        sev = r.get("severity") or "NORMAL"
+        ded = 30 if sev == "CRITICAL" else (20 if sev == "HIGH" else (10 if sev == "MEDIUM" else 0))
+        health = max(20, 100 - int(score * 30) - ded)
+        trend.append({
+            "timestamp": r["timestamp"],
+            "health_score": health,
+            "anomaly_score": score,
+            "severity": sev
+        })
+        
+    return {"equipment_id": equipment_id, "days": days, "health_trend": trend}

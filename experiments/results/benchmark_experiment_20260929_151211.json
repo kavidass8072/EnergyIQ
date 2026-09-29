@@ -1,0 +1,141 @@
+{
+  "experiment_id": "EXP-20260929_151211",
+  "executed_at": "2026-09-29 15:12:11 UTC",
+  "experiments": [
+    {
+      "name": "Synthetic Ground-Truth Labeled Benchmark",
+      "execution_duration_sec": 1.314,
+      "metrics": {
+        "metadata": {
+          "dataset_name": "EnergyIQ Synthetic Campus Telemetry",
+          "source": "Internal Synthetic Telemetry Generator",
+          "has_ground_truth_labels": true,
+          "target_field": "is_anomaly",
+          "canonical_assets": 7,
+          "time_resolution": "1 Hour",
+          "description": "Simulated multi-source commercial microgrid telemetry with injected physical faults."
+        },
+        "record_count": 10080,
+        "columns_evaluated": [
+          "timestamp",
+          "equipment_id",
+          "equipment_type",
+          "energy_kwh",
+          "operating_state",
+          "production_output",
+          "solar_generation_kwh",
+          "battery_soc",
+          "grid_consumption_kwh",
+          "temperature",
+          "maintenance_days",
+          "maintenance_status",
+          "is_anomaly",
+          "fault_label",
+          "hour_of_day",
+          "day_of_week",
+          "is_weekend",
+          "is_peak_hours",
+          "state_encoded",
+          "rolling_mean_24h",
+          "rolling_std_24h",
+          "z_score_24h",
+          "energy_deviation",
+          "energy_pct_deviation",
+          "base_on_kw",
+          "norm_expected_kw",
+          "historical_dev_pct",
+          "off_state_leakage",
+          "energy_per_prod_unit",
+          "solar_energy_ratio",
+          "grid_dependency_ratio",
+          "is_maint_overdue"
+        ],
+        "unsupervised_metrics": {
+          "anomaly_detected_count": 953,
+          "anomaly_percentage": 9.45,
+          "mean_anomaly_score": 24.65,
+          "max_anomaly_score": 100.0,
+          "score_std_dev": 18.36
+        },
+        "supervised_metrics": {
+          "precision_pct": 52.68,
+          "recall_pct": 79.3,
+          "f1_score_pct": 63.3,
+          "fpr_pct": 4.77,
+          "confusion_matrix": {
+            "TP": 502,
+            "FP": 451,
+            "FN": 131,
+            "TN": 8996
+          }
+        }
+      }
+    },
+    {
+      "name": "ASHRAE Public Benchmark (Unsupervised)",
+      "execution_duration_sec": 0.398,
+      "metrics": {
+        "metadata": {
+          "dataset_name": "ASHRAE Great Energy Predictor III (Benchmark Schema)",
+          "source": "Kaggle / ASHRAE Open Benchmark Dataset",
+          "has_ground_truth_labels": false,
+          "target_field": null,
+          "canonical_assets": 1,
+          "time_resolution": "1 Hour",
+          "description": "Public building energy consumption benchmark dataset. Unsupervised anomaly detection evaluation."
+        },
+        "record_count": 24,
+        "columns_evaluated": [
+          "timestamp",
+          "building_id",
+          "meter_type",
+          "meter_reading",
+          "air_temperature",
+          "dew_temperature",
+          "sea_level_pressure",
+          "wind_speed",
+          "equipment_id",
+          "equipment_type",
+          "energy_kwh",
+          "operating_state",
+          "production_output",
+          "solar_generation_kwh",
+          "battery_soc",
+          "grid_consumption_kwh",
+          "temperature",
+          "maintenance_days",
+          "maintenance_status",
+          "is_anomaly",
+          "fault_label",
+          "hour_of_day",
+          "day_of_week",
+          "is_weekend",
+          "is_peak_hours",
+          "state_encoded",
+          "rolling_mean_24h",
+          "rolling_std_24h",
+          "z_score_24h",
+          "energy_deviation",
+          "energy_pct_deviation",
+          "base_on_kw",
+          "norm_expected_kw",
+          "historical_dev_pct",
+          "off_state_leakage",
+          "energy_per_prod_unit",
+          "solar_energy_ratio",
+          "grid_dependency_ratio",
+          "is_maint_overdue"
+        ],
+        "unsupervised_metrics": {
+          "anomaly_detected_count": 12,
+          "anomaly_percentage": 50.0,
+          "mean_anomaly_score": 41.59,
+          "max_anomaly_score": 90.72,
+          "score_std_dev": 30.96
+        },
+        "supervised_metrics": null,
+        "note": "Dataset is unlabeled. Supervised precision/recall are omitted to prevent metric fabrication."
+      }
+    }
+  ]
+}

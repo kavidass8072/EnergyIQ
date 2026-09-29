@@ -13,9 +13,12 @@ import {
   ChevronDown,
   LogOut,
   Sliders,
-  Menu
+  Menu,
+  Activity,
+  Radio,
+  ShieldCheck
 } from 'lucide-react';
-import { globalSearch } from '../services/api';
+import { globalSearch, fetchNotifications, markAllNotificationsRead } from '../services/api';
 
 export default function TopNavbar({ 
   theme, 
@@ -24,16 +27,20 @@ export default function TopNavbar({
   onSelectAlert, 
   onSelectEquipment,
   setActiveTab,
-  onToggleSidebar
+  onToggleSidebar,
+  currentUser,
+  onLogout,
+  wsConnected,
+  streamStatus
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [notificationsData, setNotificationsData] = useState({ unread_count: 0, notifications: [] });
   const searchRef = useRef(null);
 
-  // High priority alerts for notification popup
   const activeAlerts = alerts.filter(a => a.status === 'ACTIVE' || a.severity === 'HIGH' || a.severity === 'CRITICAL');
 
   useEffect(() => {
@@ -55,7 +62,6 @@ export default function TopNavbar({
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
-  // Click outside listener for search popup
   useEffect(() => {
     function handleClickOutside(event) {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -66,10 +72,32 @@ export default function TopNavbar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [searchRef]);
 
+  // Load persisted notifications
+  const loadNotifs = async () => {
+    try {
+      const data = await fetchNotifications();
+      setNotificationsData(data);
+    } catch (e) {
+      // fallback
+    }
+  };
+
+  useEffect(() => {
+    loadNotifs();
+    const interval = setInterval(loadNotifs, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      loadNotifs();
+    } catch (e) {}
+  };
+
   return (
     <header className="h-16 px-4 sm:px-6 bg-white/90 backdrop-blur-md border-b border-slate-200 flex items-center justify-between z-20 relative transition-colors">
       <div className="flex items-center gap-3">
-        {/* Mobile Sidebar Toggle Button */}
         {onToggleSidebar && (
           <button
             onClick={onToggleSidebar}
@@ -80,7 +108,7 @@ export default function TopNavbar({
           </button>
         )}
 
-        {/* Search Input Bar */}
+        {/* Global Search Bar */}
         <div className="relative w-48 sm:w-80 md:w-96" ref={searchRef}>
           <div className="relative flex items-center">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 pointer-events-none" />
@@ -89,7 +117,7 @@ export default function TopNavbar({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchQuery.trim() && setIsSearchOpen(true)}
-              placeholder="Search equipment, alerts, faults, maintenance..."
+              placeholder="Search equipment, alerts, faults, work orders..."
               className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:bg-white transition-all"
             />
             {searchQuery && (
@@ -105,7 +133,6 @@ export default function TopNavbar({
           {/* Global Search Results Dropdown */}
           {isSearchOpen && searchResults && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-50 divide-y divide-slate-100 max-h-96 overflow-y-auto">
-              {/* Equipment Results */}
               {searchResults.equipment?.length > 0 && (
                 <div className="p-3">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -129,7 +156,6 @@ export default function TopNavbar({
                 </div>
               )}
 
-              {/* Alert Results */}
               {searchResults.alerts?.length > 0 && (
                 <div className="p-3">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -159,39 +185,6 @@ export default function TopNavbar({
                   </div>
                 </div>
               )}
-
-              {/* Maintenance Results */}
-              {searchResults.maintenance?.length > 0 && (
-                <div className="p-3">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <Wrench className="w-3 h-3 text-amber-600" /> Maintenance Records
-                  </p>
-                  <div className="space-y-1">
-                    {searchResults.maintenance.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => {
-                          setActiveTab('maintenance');
-                          setIsSearchOpen(false);
-                        }}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-50 text-xs transition-colors"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-slate-800">{m.equipment_id}</span>
-                          <span className="text-[10px] text-amber-600 font-bold">{m.status}</span>
-                        </div>
-                        <p className="text-[10px] text-slate-500 truncate mt-0.5">{m.issue_description}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {(!searchResults.equipment?.length && !searchResults.alerts?.length && !searchResults.maintenance?.length) && (
-                <div className="p-4 text-center text-xs text-slate-500">
-                  No matching equipment, alerts or maintenance records found for "{searchQuery}".
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -199,13 +192,18 @@ export default function TopNavbar({
 
       {/* Right Controls Header */}
       <div className="flex items-center gap-3 sm:gap-4">
-        {/* Campus Context Badge */}
-        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-600">
-          <span className="text-slate-400">Campus:</span>
-          <span className="text-slate-800 font-bold">Main Campus</span>
+        
+        {/* WebSocket Stream Indicator */}
+        <div className={`hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+          wsConnected 
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-700' 
+            : 'bg-amber-50 border-amber-200 text-amber-700'
+        }`}>
+          <Radio className={`w-3.5 h-3.5 ${wsConnected ? 'animate-pulse text-emerald-600' : 'text-amber-500'}`} />
+          <span>{wsConnected ? 'STREAM CONNECTED' : 'STREAM DISCONNECTED'}</span>
         </div>
 
-        {/* Dynamic System Operational Status Badge */}
+        {/* Dynamic System Status Badge */}
         <div className={`hidden sm:flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${
           activeAlerts.some(a => a.severity === 'CRITICAL')
             ? 'bg-red-50 border border-red-200 text-red-700'
@@ -219,8 +217,8 @@ export default function TopNavbar({
             'bg-emerald-600 animate-pulse'
           }`}></span>
           <span>
-            {activeAlerts.some(a => a.severity === 'CRITICAL') ? '● Degraded (Critical Alert)' :
-             activeAlerts.some(a => a.severity === 'HIGH') ? '● Warning (Active Alert)' :
+            {activeAlerts.some(a => a.severity === 'CRITICAL') ? '● Degraded' :
+             activeAlerts.some(a => a.severity === 'HIGH') ? '● Warning' :
              '● System Healthy'}
           </span>
         </div>
@@ -234,7 +232,7 @@ export default function TopNavbar({
           {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-600" />}
         </button>
 
-        {/* Notifications Popover */}
+        {/* Notification Bell */}
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
@@ -242,9 +240,9 @@ export default function TopNavbar({
             title="Notifications"
           >
             <Bell className="w-4 h-4" />
-            {activeAlerts.length > 0 && (
+            {notificationsData.unread_count > 0 && (
               <span className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-red-600 text-white text-[9px] font-black flex items-center justify-center shadow-xs">
-                {activeAlerts.length}
+                {notificationsData.unread_count}
               </span>
             )}
           </button>
@@ -253,33 +251,33 @@ export default function TopNavbar({
             <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-50">
               <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                  <ShieldAlert className="w-3.5 h-3.5 text-red-600" /> Active Priority Alerts
+                  <ShieldAlert className="w-3.5 h-3.5 text-red-600" /> System Notifications
                 </h4>
-                <span className="text-[10px] text-red-600 font-extrabold">{activeAlerts.length} Active</span>
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-[10px] text-red-600 hover:underline font-bold"
+                >
+                  Mark all read
+                </button>
               </div>
               <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                {activeAlerts.length > 0 ? (
-                  activeAlerts.slice(0, 5).map(al => (
-                    <div 
-                      key={al.id} 
-                      onClick={() => {
-                        onSelectAlert(al);
-                        setShowNotifications(false);
-                      }}
-                      className="p-3 hover:bg-slate-50 cursor-pointer transition-colors"
-                    >
+                {notificationsData.notifications?.length > 0 ? (
+                  notificationsData.notifications.map(n => (
+                    <div key={n.id} className="p-3 hover:bg-slate-50 transition-colors">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-slate-800">{al.equipment_id}</span>
-                        <span className="text-[10px] font-mono text-red-600 font-bold">{al.energy_kwh} kWh</span>
+                        <span className="font-bold text-slate-800">{n.title}</span>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                          n.severity === 'CRITICAL' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'
+                        }`}>{n.severity}</span>
                       </div>
-                      <p className="text-[11px] text-red-600 font-semibold mt-1">{al.likely_fault}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{al.timestamp}</p>
+                      <p className="text-[11px] text-slate-600 mt-1">{n.message}</p>
+                      <p className="text-[10px] text-slate-400 mt-1">{n.timestamp}</p>
                     </div>
                   ))
                 ) : (
                   <div className="p-4 text-center text-xs text-slate-500">
                     <CheckCircle2 className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
-                    No active high priority alerts.
+                    No unread notifications.
                   </div>
                 )}
               </div>
@@ -287,27 +285,29 @@ export default function TopNavbar({
           )}
         </div>
 
-        {/* User Profile Menu */}
+        {/* Authenticated User Menu */}
         <div className="relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200 hover:border-slate-300 transition-colors"
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-red-600 to-red-500 flex items-center justify-center text-white text-xs font-bold shadow-xs">
-              FO
+            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-red-600 to-rose-700 flex items-center justify-center text-white text-xs font-bold shadow-xs uppercase">
+              {currentUser?.username ? currentUser.username.substring(0, 2) : 'US'}
             </div>
             <div className="hidden md:block text-left text-xs">
-              <p className="font-bold text-slate-800 leading-tight">Facility Operator</p>
-              <p className="text-[10px] text-slate-500 font-medium">Campus Sector A</p>
+              <p className="font-bold text-slate-800 leading-tight">{currentUser?.username || 'User'}</p>
+              <p className="text-[10px] text-red-600 font-bold uppercase">{currentUser?.role || 'OPERATOR'}</p>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
 
           {showUserMenu && (
-            <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-2xl shadow-xl py-1 z-50 text-xs">
+            <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl py-1 z-50 text-xs">
               <div className="px-3 py-2 border-b border-slate-100 bg-slate-50/50">
-                <p className="font-bold text-slate-800">Facility Operator</p>
-                <p className="text-[10px] text-slate-500">operator@energyiq.campus.io</p>
+                <p className="font-bold text-slate-800">{currentUser?.username}</p>
+                <span className="inline-block mt-0.5 px-2 py-0.5 bg-red-100 text-red-800 text-[9px] font-black rounded-md uppercase">
+                  {currentUser?.role}
+                </span>
               </div>
               <button 
                 onClick={() => { setActiveTab('settings'); setShowUserMenu(false); }}
@@ -315,18 +315,12 @@ export default function TopNavbar({
               >
                 <Sliders className="w-3.5 h-3.5 text-red-600" /> System Settings
               </button>
-              <button 
-                onClick={() => setShowUserMenu(false)}
-                className="w-full text-left px-3 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2 font-medium"
-              >
-                <User className="w-3.5 h-3.5 text-slate-600" /> Profile & Role
-              </button>
               <div className="border-t border-slate-100 my-1"></div>
               <button 
-                onClick={() => setShowUserMenu(false)}
+                onClick={onLogout}
                 className="w-full text-left px-3 py-2 hover:bg-slate-50 text-red-600 flex items-center gap-2 font-semibold"
               >
-                <LogOut className="w-3.5 h-3.5" /> Sign Out (Demo)
+                <LogOut className="w-3.5 h-3.5" /> Sign Out
               </button>
             </div>
           )}

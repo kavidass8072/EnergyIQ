@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: energyiq-backend-prod
+    restart: always
+    environment:
+      - APP_ENV=production
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - JWT_SECRET=energyiq-production-jwt-secret-key-must-be-min-32-chars-2026
+      - DATABASE_URL=sqlite:////app/data/app.db
+      - CORS_ORIGINS=http://localhost,http://localhost:80
+    volumes:
+      - app-data:/app/backend/data
+      - app-backups:/app/backups
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/system/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: energyiq-frontend-nginx
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  app-data:
+  app-backups:

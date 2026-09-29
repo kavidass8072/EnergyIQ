@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import Sidebar from './components/Sidebar';
 import TopNavbar from './components/TopNavbar';
 import Toast from './components/Toast';
 import AlertDetailModal from './components/AlertDetailModal';
 import DemoControlPanel from './components/DemoControlPanel';
+import LoginView from './components/LoginView';
 
 import DashboardView from './views/DashboardView';
 import LiveEnergyView from './views/LiveEnergyView';
@@ -12,21 +13,39 @@ import AlertsView from './views/AlertsView';
 import AnalyticsView from './views/AnalyticsView';
 import MaintenanceView from './views/MaintenanceView';
 import AIInsightsView from './views/AIInsightsView';
-import EvaluationView from './components/EvaluationView';
-import EdgeCaseWorkbenchView from './views/EdgeCaseWorkbenchView';
 import ReportsView from './views/ReportsView';
 import SettingsView from './views/SettingsView';
+
+// Lazy-loaded routes for code-splitting and bundle size optimization
+const EvaluationView = lazy(() => import('./components/EvaluationView'));
+const EdgeCaseWorkbenchView = lazy(() => import('./views/EdgeCaseWorkbenchView'));
+const BenchmarkView = lazy(() => import('./views/BenchmarkView'));
+const DataQualityView = lazy(() => import('./views/DataQualityView'));
+const ModelRegistryView = lazy(() => import('./views/ModelRegistryView'));
+const StreamingHealthView = lazy(() => import('./views/StreamingHealthView'));
 
 import { 
   fetchDashboardSummary, 
   fetchPowerFlowHistory, 
   fetchAllEquipment, 
-  fetchAlerts 
+  fetchAlerts,
+  clearAuthToken,
+  fetchCurrentUser,
+  fetchStreamingStatus
 } from './services/api';
 
 import { RefreshCw } from 'lucide-react';
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("energyiq_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
   const [activeTab, setActiveTab] = useState('overview');
   const [theme, setTheme] = useState('light');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -44,6 +63,11 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState('');
   const [toast, setToast] = useState(null);
 
+  // WebSocket Streaming State
+  const [wsConnected, setWsConnected] = useState(false);
+  const [streamStatus, setStreamStatus] = useState(null);
+  const wsRef = useRef(null);
+
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => {
@@ -52,6 +76,7 @@ export default function App() {
   };
 
   const loadDashboardData = async () => {
+    if (!currentUser) return;
     try {
       const [sumData, flowData, eqData, alertData] = await Promise.all([
         fetchDashboardSummary(),
@@ -73,13 +98,15 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (currentUser) {
+      loadDashboardData();
+    }
+  }, [currentUser]);
 
   // Periodic Auto-refresh interval (every 15s if enabled)
   useEffect(() => {
     let interval = null;
-    if (autoRefresh) {
+    if (autoRefresh && currentUser) {
       interval = setInterval(() => {
         loadDashboardData();
       }, 15000);
@@ -87,7 +114,61 @@ export default function App() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [autoRefresh]);
+  }, [autoRefresh, currentUser]);
+
+  // WebSocket Streaming connection setup
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let socket = null;
+    const connectWS = () => {
+      try {
+        const envUrl = import.meta.env && import.meta.env.VITE_API_BASE_URL;
+        let wsUrl = "ws://localhost:8000/api/streaming/ws";
+        if (envUrl) {
+          const wsProto = envUrl.startsWith("https") ? "wss" : "ws";
+          wsUrl = envUrl.replace(/^https?:\/\//, `${wsProto}://`) + "/streaming/ws";
+        }
+        socket = new WebSocket(wsUrl);
+        wsRef.current = socket;
+
+        socket.onopen = () => {
+          setWsConnected(true);
+        };
+
+        socket.onmessage = (event) => {
+          try {
+            const frame = JSON.parse(event.data);
+            if (frame.type === "TELEMETRY_TICK") {
+              if (frame.stats) setStreamStatus(frame.stats);
+              if (frame.alert) {
+                showToast(`Anomaly Alert: ${frame.alert.equipment_id} - ${frame.alert.likely_fault}`, 'warning');
+                loadDashboardData();
+              }
+            }
+          } catch (e) {}
+        };
+
+        socket.onclose = () => {
+          setWsConnected(false);
+          // Reconnect attempt after 5s
+          setTimeout(connectWS, 5000);
+        };
+
+        socket.onerror = () => {
+          setWsConnected(false);
+        };
+      } catch (e) {
+        setWsConnected(false);
+      }
+    };
+
+    connectWS();
+
+    return () => {
+      if (socket) socket.close();
+    };
+  }, [currentUser]);
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -99,6 +180,16 @@ export default function App() {
     setSelectedEquipmentId(equipmentId);
     setActiveTab('equipment');
   };
+
+  const handleLogout = () => {
+    clearAuthToken();
+    setCurrentUser(null);
+    showToast("Signed out successfully", "info");
+  };
+
+  if (!currentUser) {
+    return <LoginView onLoginSuccess={(user) => { setCurrentUser(user); showToast(`Welcome back, ${user.username}!`, "success"); }} />;
+  }
 
   const activeAlertsCount = alerts.filter(a => a.status === 'ACTIVE').length;
 
@@ -114,6 +205,7 @@ export default function App() {
           setIsCollapsed={setIsSidebarCollapsed}
           isMobileOpen={isMobileOpen}
           setIsMobileOpen={setIsMobileOpen}
+          currentUser={currentUser}
         />
 
         {/* Main Content Shell */}
@@ -127,6 +219,10 @@ export default function App() {
             onSelectEquipment={handleInspectEquipment}
             setActiveTab={setActiveTab}
             onToggleSidebar={() => setIsMobileOpen(!isMobileOpen)}
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            wsConnected={wsConnected}
+            streamStatus={streamStatus}
           />
 
           {/* Main Workspace Area */}
@@ -137,7 +233,12 @@ export default function App() {
                 <p className="text-xs">Connecting to FastAPI Backend & Telemetry Pipeline...</p>
               </div>
             ) : (
-              <>
+              <Suspense fallback={
+                <div className="h-64 bg-white border border-slate-200 rounded-2xl shadow-xs flex flex-col items-center justify-center space-y-3 text-slate-500 font-semibold">
+                  <RefreshCw className="w-8 h-8 text-red-600 animate-spin" />
+                  <p className="text-xs">Loading EnergyIQ View Module...</p>
+                </div>
+              }>
                 {/* 1. Dashboard Overview Tab */}
                 {activeTab === 'overview' && (
                   <DashboardView
@@ -204,9 +305,29 @@ export default function App() {
                   <EvaluationView />
                 )}
 
+                {/* 7b. Benchmark Evaluation Tab */}
+                {activeTab === 'benchmark' && (
+                  <BenchmarkView />
+                )}
+
+                {/* 7c. Data Quality Tab */}
+                {activeTab === 'data-quality' && (
+                  <DataQualityView />
+                )}
+
+                {/* 7d. Model Registry Tab */}
+                {activeTab === 'model-registry' && (
+                  <ModelRegistryView showToast={showToast} />
+                )}
+
                 {/* 8. Edge Cases Workbench Tab */}
                 {activeTab === 'edge-cases' && (
                   <EdgeCaseWorkbenchView />
+                )}
+
+                {/* 8b. Streaming Health Tab */}
+                {activeTab === 'streaming-health' && (
+                  <StreamingHealthView showToast={showToast} />
                 )}
 
                 {/* 9. Executive Reports Tab */}
@@ -226,7 +347,7 @@ export default function App() {
                     showToast={showToast}
                   />
                 )}
-              </>
+              </Suspense>
             )}
           </main>
         </div>
