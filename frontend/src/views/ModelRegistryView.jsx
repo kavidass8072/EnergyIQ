@@ -14,6 +14,12 @@ import {
 } from 'lucide-react';
 import { fetchModelRegistry, activateModel, fetchModelDrift } from '../services/api';
 
+const formatMetric = (val) => {
+  if (val === undefined || val === null || isNaN(val)) return 'N/A';
+  const num = Number(val);
+  return (num <= 1.0 && num > 0 ? num * 100 : num).toFixed(1) + '%';
+};
+
 export default function ModelRegistryView({ showToast }) {
   const [models, setModels] = useState([]);
   const [driftData, setDriftData] = useState(null);
@@ -147,15 +153,15 @@ export default function ModelRegistryView({ showToast }) {
               <div className="grid grid-cols-3 gap-4 text-center bg-white p-3 rounded-xl border border-red-100 shadow-2xs">
                 <div>
                   <p className="text-[10px] font-extrabold text-slate-400 uppercase">F1-Score</p>
-                  <p className="text-sm font-black text-slate-900">{(activeModel.metrics.f1 * 100).toFixed(1)}%</p>
+                  <p className="text-sm font-black text-slate-900">{formatMetric(activeModel.metrics.f1)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-extrabold text-slate-400 uppercase">Precision</p>
-                  <p className="text-sm font-black text-emerald-600">{(activeModel.metrics.precision * 100).toFixed(1)}%</p>
+                  <p className="text-sm font-black text-emerald-600">{formatMetric(activeModel.metrics.precision)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-extrabold text-slate-400 uppercase">Recall</p>
-                  <p className="text-sm font-black text-slate-900">{(activeModel.metrics.recall * 100).toFixed(1)}%</p>
+                  <p className="text-sm font-black text-slate-900">{formatMetric(activeModel.metrics.recall)}</p>
                 </div>
               </div>
             </div>
@@ -203,20 +209,20 @@ export default function ModelRegistryView({ showToast }) {
                       <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
                         <div className="flex justify-between text-xs">
                           <span className="text-slate-500 font-semibold">Precision:</span>
-                          <span className="font-extrabold text-slate-900">{(model.metrics.precision * 100).toFixed(1)}%</span>
+                          <span className="font-extrabold text-slate-900">{formatMetric(model.metrics.precision)}</span>
                         </div>
                         <div className="flex justify-between text-xs">
                           <span className="text-slate-500 font-semibold">Recall:</span>
-                          <span className="font-extrabold text-slate-900">{(model.metrics.recall * 100).toFixed(1)}%</span>
+                          <span className="font-extrabold text-slate-900">{formatMetric(model.metrics.recall)}</span>
                         </div>
                         <div className="flex justify-between text-xs">
                           <span className="text-slate-500 font-semibold">F1 Score:</span>
-                          <span className="font-extrabold text-red-600">{(model.metrics.f1 * 100).toFixed(1)}%</span>
+                          <span className="font-extrabold text-red-600">{formatMetric(model.metrics.f1)}</span>
                         </div>
                         {model.metrics.false_alarm_rate !== undefined && (
                           <div className="flex justify-between text-xs">
                             <span className="text-slate-500 font-semibold">False Alarm Rate:</span>
-                            <span className="font-extrabold text-emerald-600">{(model.metrics.false_alarm_rate * 100).toFixed(1)}%</span>
+                            <span className="font-extrabold text-emerald-600">{formatMetric(model.metrics.false_alarm_rate)}</span>
                           </div>
                         )}
                       </div>

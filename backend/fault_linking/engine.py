@@ -1,18 +1,5 @@
 from typing import Dict, Any, List
 
-FAULT_CATEGORIES = [
-    "Motor Inefficiency",
-    "Mechanical Resistance",
-    "Sensor Malfunction",
-    "Unexpected Standby Consumption",
-    "Excessive Operating Duration",
-    "Cooling/Heating Inefficiency",
-    "Production-Related Abnormality",
-    "Maintenance Overdue",
-    "Electrical Abnormality",
-    "Unknown Anomaly"
-]
-
 # 10 Physical Equipment Fault Categories mapped to physical telemetry signals
 FAULT_CATEGORIES = [
     "Motor Inefficiency",

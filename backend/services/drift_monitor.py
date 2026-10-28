@@ -100,14 +100,16 @@ def compute_model_drift_metrics() -> Dict[str, Any]:
     try:
         now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         conn = get_connection()
-        c = conn.cursor()
-        for fd in feature_drifts:
-            c.execute("""
-                INSERT INTO drift_logs (timestamp, feature_name, psi_score, ks_pvalue, status)
-                VALUES (?, ?, ?, 0.95, ?)
-            """, (now_str, fd["feature_name"], fd["psi_score"], fd["status"]))
-        conn.commit()
-        conn.close()
+        try:
+            c = conn.cursor()
+            for fd in feature_drifts:
+                c.execute("""
+                    INSERT INTO drift_logs (timestamp, feature_name, psi_score, ks_pvalue, status)
+                    VALUES (?, ?, ?, 0.95, ?)
+                """, (now_str, fd["feature_name"], fd["psi_score"], fd["status"]))
+            conn.commit()
+        finally:
+            conn.close()
     except Exception:
         pass
 

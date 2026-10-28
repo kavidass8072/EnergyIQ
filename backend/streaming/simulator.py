@@ -218,6 +218,7 @@ class StreamingManager:
                         payload = {
                             "type": "TELEMETRY_TICK",
                             "data": cleaned,
+                            "payload": cleaned,
                             "alert": alert_created,
                             "stats": self.get_status()
                         }
@@ -232,108 +233,110 @@ class StreamingManager:
 
     def _process_telemetry_event(self, record: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         conn = get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT AVG(energy_kwh) as avg_kw, COUNT(*) as cnt
-            FROM telemetry
-            WHERE equipment_id = ? AND operating_state = 'ON'
-            ORDER BY id DESC LIMIT 48
-        """, (record["equipment_id"],))
-        b_row = cursor.fetchone()
-        expected = float(b_row["avg_kw"]) if (b_row and b_row["avg_kw"]) else record["energy_kwh"]
-        if expected <= 0.01:
-            expected = record["energy_kwh"]
+        try:
+            cursor = conn.cursor()
             
-        dev_pct = ((record["energy_kwh"] - expected) / expected * 100.0) if expected > 0.01 else 0.0
-        
-        is_anomaly = 0
-        score = 15.0
-        severity = "NORMAL"
-        
-        if record["operating_state"] == "OFF" and record["energy_kwh"] > 2.0:
-            is_anomaly = 1
-            score = 88.0
-            severity = "HIGH"
-        elif dev_pct > 35.0:
-            is_anomaly = 1
-            score = min(98.0, 50.0 + dev_pct * 0.8)
-            severity = "CRITICAL" if dev_pct > 65.0 else ("HIGH" if dev_pct > 45.0 else "MEDIUM")
+            cursor.execute("""
+                SELECT AVG(energy_kwh) as avg_kw, COUNT(*) as cnt
+                FROM telemetry
+                WHERE equipment_id = ? AND operating_state = 'ON'
+                ORDER BY id DESC LIMIT 48
+            """, (record["equipment_id"],))
+            b_row = cursor.fetchone()
+            expected = float(b_row["avg_kw"]) if (b_row and b_row["avg_kw"]) else record["energy_kwh"]
+            if expected <= 0.01:
+                expected = record["energy_kwh"]
+                
+            dev_pct = ((record["energy_kwh"] - expected) / expected * 100.0) if expected > 0.01 else 0.0
             
-        record["is_anomaly"] = is_anomaly
-        record["anomaly_score"] = round(score, 1)
-        record["severity"] = severity
-        
-        record["rolling_mean_24h"] = expected
-        record["hour_of_day"] = datetime.now().hour
-        fault_res = analyze_and_link_fault(record)
-        record["fault_label"] = fault_res["likely_fault"] if is_anomaly else "NORMAL"
-        
-        cursor.execute("""
-            INSERT INTO telemetry (
-                timestamp, equipment_id, equipment_type, energy_kwh, operating_state,
-                production_output, solar_generation_kwh, battery_soc, grid_consumption_kwh,
-                temperature, maintenance_days, maintenance_status, is_anomaly, fault_label,
-                anomaly_score, severity
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            record["timestamp"], record["equipment_id"], record["equipment_type"], record["energy_kwh"],
-            record["operating_state"], record["production_output"], record["solar_generation_kwh"],
-            record["battery_soc"], record["grid_consumption_kwh"], record["temperature"],
-            record["maintenance_days"], record["maintenance_status"], record["is_anomaly"],
-            record["fault_label"], record["anomaly_score"], record["severity"]
-        ))
-        
-        new_alert = None
-        if is_anomaly:
-            self.active_anomalies += 1
-            key = f"{record['equipment_id']}:{fault_res['likely_fault']}"
-            now_ts = time.time()
-            last_ts = self.last_alert_timestamps.get(key, 0.0)
+            is_anomaly = 0
+            score = 15.0
+            severity = "NORMAL"
             
-            if (now_ts - last_ts) > self.alert_cooldown_seconds:
-                self.last_alert_timestamps[key] = now_ts
-                evidence_json = json.dumps(fault_res["evidence"])
-                cursor.execute("""
-                    INSERT INTO alerts (
-                        timestamp, equipment_id, equipment_type, severity, energy_kwh,
-                        expected_kwh, dev_pct, operating_state, production_output,
-                        maintenance_days, likely_fault, fault_confidence, evidence_json,
-                        recommended_action, status
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
-                """, (
-                    record["timestamp"], record["equipment_id"], record["equipment_type"],
-                    severity, record["energy_kwh"], round(expected, 2), round(dev_pct, 1),
-                    record["operating_state"], record["production_output"], record["maintenance_days"],
-                    fault_res["likely_fault"], fault_res["fault_confidence"], evidence_json,
-                    fault_res["recommended_action"]
-                ))
-                alert_id = cursor.lastrowid
+            if record["operating_state"] == "OFF" and record["energy_kwh"] > 2.0:
+                is_anomaly = 1
+                score = 88.0
+                severity = "HIGH"
+            elif dev_pct > 35.0:
+                is_anomaly = 1
+                score = min(98.0, 50.0 + dev_pct * 0.8)
+                severity = "CRITICAL" if dev_pct > 65.0 else ("HIGH" if dev_pct > 45.0 else "MEDIUM")
                 
-                cursor.execute("""
-                    INSERT INTO notifications (timestamp, title, message, severity, read_status, target_role)
-                    VALUES (?, ?, ?, ?, 0, 'FACILITY_OPERATOR')
-                """, (
-                    record["timestamp"],
-                    f"Anomaly Alert: {record['equipment_id']}",
-                    f"{fault_res['likely_fault']} detected on {record['equipment_id']} (+{dev_pct:.1f}% energy deviation).",
-                    severity
-                ))
+            record["is_anomaly"] = is_anomaly
+            record["anomaly_score"] = round(score, 1)
+            record["severity"] = severity
+            
+            record["rolling_mean_24h"] = expected
+            record["hour_of_day"] = datetime.now().hour
+            fault_res = analyze_and_link_fault(record)
+            record["fault_label"] = fault_res["likely_fault"] if is_anomaly else "NORMAL"
+            
+            cursor.execute("""
+                INSERT INTO telemetry (
+                    timestamp, equipment_id, equipment_type, energy_kwh, operating_state,
+                    production_output, solar_generation_kwh, battery_soc, grid_consumption_kwh,
+                    temperature, maintenance_days, maintenance_status, is_anomaly, fault_label,
+                    anomaly_score, severity
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                record["timestamp"], record["equipment_id"], record["equipment_type"], record["energy_kwh"],
+                record["operating_state"], record["production_output"], record["solar_generation_kwh"],
+                record["battery_soc"], record["grid_consumption_kwh"], record["temperature"],
+                record["maintenance_days"], record["maintenance_status"], record["is_anomaly"],
+                record["fault_label"], record["anomaly_score"], record["severity"]
+            ))
+            
+            new_alert = None
+            if is_anomaly:
+                self.active_anomalies += 1
+                key = f"{record['equipment_id']}:{fault_res['likely_fault']}"
+                now_ts = time.time()
+                last_ts = self.last_alert_timestamps.get(key, 0.0)
                 
-                new_alert = {
-                    "id": alert_id,
-                    "timestamp": record["timestamp"],
-                    "equipment_id": record["equipment_id"],
-                    "equipment_type": record["equipment_type"],
-                    "severity": severity,
-                    "likely_fault": fault_res["likely_fault"],
-                    "fault_confidence": fault_res["fault_confidence"],
-                    "dev_pct": round(dev_pct, 1),
-                    "recommended_action": fault_res["recommended_action"]
-                }
-                
-        conn.commit()
-        conn.close()
-        return new_alert
+                if (now_ts - last_ts) > self.alert_cooldown_seconds:
+                    self.last_alert_timestamps[key] = now_ts
+                    evidence_json = json.dumps(fault_res["evidence"])
+                    cursor.execute("""
+                        INSERT INTO alerts (
+                            timestamp, equipment_id, equipment_type, severity, energy_kwh,
+                            expected_kwh, dev_pct, operating_state, production_output,
+                            maintenance_days, likely_fault, fault_confidence, evidence_json,
+                            recommended_action, status
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
+                    """, (
+                        record["timestamp"], record["equipment_id"], record["equipment_type"],
+                        severity, record["energy_kwh"], round(expected, 2), round(dev_pct, 1),
+                        record["operating_state"], record["production_output"], record["maintenance_days"],
+                        fault_res["likely_fault"], fault_res["fault_confidence"], evidence_json,
+                        fault_res["recommended_action"]
+                    ))
+                    alert_id = cursor.lastrowid
+                    
+                    cursor.execute("""
+                        INSERT INTO notifications (timestamp, title, message, severity, read_status, target_role)
+                        VALUES (?, ?, ?, ?, 0, 'FACILITY_OPERATOR')
+                    """, (
+                        record["timestamp"],
+                        f"Anomaly Alert: {record['equipment_id']}",
+                        f"{fault_res['likely_fault']} detected on {record['equipment_id']} (+{dev_pct:.1f}% energy deviation).",
+                        severity
+                    ))
+                    
+                    new_alert = {
+                        "id": alert_id,
+                        "timestamp": record["timestamp"],
+                        "equipment_id": record["equipment_id"],
+                        "equipment_type": record["equipment_type"],
+                        "severity": severity,
+                        "likely_fault": fault_res["likely_fault"],
+                        "fault_confidence": fault_res["fault_confidence"],
+                        "dev_pct": round(dev_pct, 1),
+                        "recommended_action": fault_res["recommended_action"]
+                    }
+                    
+            conn.commit()
+            return new_alert
+        finally:
+            conn.close()
 
 streaming_manager = StreamingManager()

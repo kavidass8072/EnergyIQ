@@ -77,12 +77,13 @@ export default function StreamingHealthView({ showToast }) {
         try {
           const frame = JSON.parse(event.data);
           if (frame.type === "TELEMETRY_TICK") {
+            const item = frame.data || frame.payload || {};
             setLogs((prev) => [
               {
                 time: new Date().toLocaleTimeString(),
-                asset: frame.payload?.equipment_id,
-                kw: frame.payload?.energy_kwh,
-                temp: frame.payload?.temperature,
+                asset: item.equipment_id,
+                kw: item.energy_kwh,
+                temp: item.temperature,
                 alert: frame.alert ? frame.alert.likely_fault : null
               },
               ...prev.slice(0, 19)

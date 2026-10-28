@@ -20,45 +20,49 @@ class SettingsPayload(BaseModel):
 @router.get("")
 def get_all_settings():
     conn = get_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT key, value FROM app_settings")
-    rows = cursor.fetchall()
-    conn.close()
-    
-    settings_dict = {}
-    for r in rows:
-        settings_dict[r["key"]] = r["value"]
+    try:
+        cursor = conn.cursor()
         
-    thresholds = load_threshold_config()
-    
-    return {
-        "electricity_rate": float(settings_dict.get("electricity_rate", 8.50)),
-        "currency": settings_dict.get("currency", "₹"),
-        "rolling_window_hours": int(settings_dict.get("rolling_window_hours", 24)),
-        "anomaly_sensitivity": settings_dict.get("anomaly_sensitivity", "HIGH"),
-        "auto_refresh_sec": int(settings_dict.get("auto_refresh_sec", 15)),
-        "min_alert_duration_hr": int(settings_dict.get("min_alert_duration_hr", 1)),
-        "thresholds": thresholds
-    }
+        cursor.execute("SELECT key, value FROM app_settings")
+        rows = cursor.fetchall()
+        
+        settings_dict = {}
+        for r in rows:
+            settings_dict[r["key"]] = r["value"]
+            
+        thresholds = load_threshold_config()
+        
+        return {
+            "electricity_rate": float(settings_dict.get("electricity_rate", 8.50)),
+            "currency": settings_dict.get("currency", "₹"),
+            "rolling_window_hours": int(settings_dict.get("rolling_window_hours", 24)),
+            "anomaly_sensitivity": settings_dict.get("anomaly_sensitivity", "HIGH"),
+            "auto_refresh_sec": int(settings_dict.get("auto_refresh_sec", 15)),
+            "min_alert_duration_hr": int(settings_dict.get("min_alert_duration_hr", 1)),
+            "thresholds": thresholds
+        }
+    finally:
+        conn.close()
 
 @router.post("")
 def update_settings(payload: SettingsPayload):
     conn = get_connection()
-    cursor = conn.cursor()
-    
-    settings_items = [
-        ("electricity_rate", str(payload.electricity_rate)),
-        ("currency", payload.currency),
-        ("rolling_window_hours", str(payload.rolling_window_hours)),
-        ("anomaly_sensitivity", payload.anomaly_sensitivity),
-        ("auto_refresh_sec", str(payload.auto_refresh_sec)),
-        ("min_alert_duration_hr", str(payload.min_alert_duration_hr))
-    ]
-    
-    cursor.executemany("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", settings_items)
-    conn.commit()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        
+        settings_items = [
+            ("electricity_rate", str(payload.electricity_rate)),
+            ("currency", payload.currency),
+            ("rolling_window_hours", str(payload.rolling_window_hours)),
+            ("anomaly_sensitivity", payload.anomaly_sensitivity),
+            ("auto_refresh_sec", str(payload.auto_refresh_sec)),
+            ("min_alert_duration_hr", str(payload.min_alert_duration_hr))
+        ]
+        
+        cursor.executemany("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", settings_items)
+        conn.commit()
+    finally:
+        conn.close()
     
     # Update thresholds if provided
     if payload.thresholds:

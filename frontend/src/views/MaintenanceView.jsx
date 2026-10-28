@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Wrench, Sparkles, Plus, RefreshCw } from 'lucide-react';
 import { fetchMaintenanceOverview, updateMaintenanceTaskStatus, createMaintenanceTask } from '../services/api';
 
+const EQUIPMENT_TYPE_MAP = {
+  'HVAC-01': 'HVAC',
+  'HVAC-02': 'HVAC',
+  'Motor-01': 'Heavy Motor',
+  'Compressor-01': 'Industrial Compressor',
+  'Pump-01': 'Fluid Pump',
+  'Production-Line-01': 'Assembly Line',
+  'Cooling-Unit-01': 'Chiller'
+};
+
 export default function MaintenanceView({ showToast }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -198,7 +208,14 @@ export default function MaintenanceView({ showToast }) {
                 <label className="block text-slate-600 font-bold mb-1">Equipment Asset ID</label>
                 <select
                   value={newTask.equipment_id}
-                  onChange={(e) => setNewTask({ ...newTask, equipment_id: e.target.value })}
+                  onChange={(e) => {
+                    const eqId = e.target.value;
+                    setNewTask({
+                      ...newTask,
+                      equipment_id: eqId,
+                      equipment_type: EQUIPMENT_TYPE_MAP[eqId] || 'Equipment'
+                    });
+                  }}
                   className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
                 >
                   <option value="HVAC-01">HVAC-01 (HVAC)</option>
