@@ -10,10 +10,11 @@ from backend.auth.security import (
 from backend.models.user import (
     UserLoginRequest, TokenResponse, UserResponse, UserCreateRequest, AuditLogResponse
 )
+from backend.api.rate_limiter import login_rate_limiter
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, dependencies=[Depends(login_rate_limiter)])
 def login(request: UserLoginRequest):
     conn = get_connection()
     try:

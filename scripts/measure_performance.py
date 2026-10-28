@@ -46,27 +46,29 @@ def measure_api_latencies():
 
 def measure_db_latencies():
     conn = get_connection()
-    cursor = conn.cursor()
-    
-    # Measure telemetry 24h query
-    t0 = time.perf_counter()
-    cursor.execute("SELECT * FROM telemetry ORDER BY timestamp DESC LIMIT 168")
-    cursor.fetchall()
-    t1 = time.perf_counter()
-    query_24h_ms = (t1 - t0) * 1000.0
-    
-    # Measure alerts count query
-    t0 = time.perf_counter()
-    cursor.execute("SELECT status, severity, COUNT(*) FROM alerts GROUP BY status, severity")
-    cursor.fetchall()
-    t1 = time.perf_counter()
-    query_alerts_ms = (t1 - t0) * 1000.0
-    
-    conn.close()
-    return {
-        "telemetry_history_query_ms": round(query_24h_ms, 2),
-        "alert_aggregation_query_ms": round(query_alerts_ms, 2)
-    }
+    try:
+        cursor = conn.cursor()
+        
+        # Measure telemetry 24h query
+        t0 = time.perf_counter()
+        cursor.execute("SELECT * FROM telemetry ORDER BY timestamp DESC LIMIT 168")
+        cursor.fetchall()
+        t1 = time.perf_counter()
+        query_24h_ms = (t1 - t0) * 1000.0
+        
+        # Measure alerts count query
+        t0 = time.perf_counter()
+        cursor.execute("SELECT status, severity, COUNT(*) FROM alerts GROUP BY status, severity")
+        cursor.fetchall()
+        t1 = time.perf_counter()
+        query_alerts_ms = (t1 - t0) * 1000.0
+        
+        return {
+            "telemetry_history_query_ms": round(query_24h_ms, 2),
+            "alert_aggregation_query_ms": round(query_alerts_ms, 2)
+        }
+    finally:
+        conn.close()
 
 def measure_ml_inference():
     df = generate_campus_dataset(days=14, seed=42)

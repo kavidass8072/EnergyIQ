@@ -46,8 +46,10 @@ class ScenarioEngine:
             return []
 
         elif scenario == "DELAYED_PACKET":
-            # Simulate network latency delay
-            time.sleep(0.15) # 150ms artificial delay
+            # Simulate network latency delay without blocking event loop
+            delayed_dt = datetime.now() - timedelta(seconds=15)
+            records[0]["timestamp"] = delayed_dt.strftime("%Y-%m-%d %H:%M:%S")
+            records[0]["network_latency_ms"] = 150.0
             return records
 
         elif scenario == "DUPLICATE_PACKET":

@@ -89,10 +89,12 @@ def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depen
         )
         
     conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, username, role, active_status, last_login FROM users WHERE username = ?", (username,))
-    user = cursor.fetchone()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, username, role, active_status, last_login FROM users WHERE username = ?", (username,))
+        user = cursor.fetchone()
+    finally:
+        conn.close()
     
     if not user:
         raise HTTPException(
@@ -124,6 +126,7 @@ class RoleChecker:
 
 def log_audit_action(user_id: Optional[int], username: str, action: str, resource: str, details: Optional[Dict[str, Any]] = None):
     """Inserts a record into SQLite audit_logs table."""
+    conn = None
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -134,6 +137,8 @@ def log_audit_action(user_id: Optional[int], username: str, action: str, resourc
             VALUES (?, ?, ?, ?, ?, ?)
         """, (now_str, user_id, username, action, resource, details_json))
         conn.commit()
-        conn.close()
     except Exception as e:
         print(f"Audit log failed: {e}")
+    finally:
+        if conn:
+            conn.close()

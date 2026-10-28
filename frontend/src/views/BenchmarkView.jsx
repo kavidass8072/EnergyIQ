@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Database, ShieldCheck, BarChart3, Info, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Database, Info, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { fetchBenchmarkAdapters, runBenchmarkEvaluation } from '../services/api';
 
 export default function BenchmarkView() {
@@ -9,21 +9,16 @@ export default function BenchmarkView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    loadAdapters();
-    executeEval('synthetic');
-  }, []);
-
-  const loadAdapters = async () => {
+  const loadAdapters = useCallback(async () => {
     try {
       const list = await fetchBenchmarkAdapters();
       setAdapters(list);
     } catch (err) {
       console.error("Failed adapters load:", err);
     }
-  };
+  }, []);
 
-  const executeEval = async (adapterId) => {
+  const executeEval = useCallback(async (adapterId) => {
     setLoading(true);
     setError(null);
     try {
@@ -34,7 +29,12 @@ export default function BenchmarkView() {
       setLoading(false);
       setError(err.message || "Evaluation failed");
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadAdapters();
+    executeEval('synthetic');
+  }, [loadAdapters, executeEval]);
 
   const handleAdapterChange = (id) => {
     setSelectedAdapter(id);

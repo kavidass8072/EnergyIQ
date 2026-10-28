@@ -1,17 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Activity, 
   Play, 
   Square, 
-  RefreshCw, 
   Zap, 
-  Wifi, 
-  WifiOff, 
   Radio, 
-  AlertCircle, 
   CheckCircle2, 
-  Sliders, 
-  Trash2 
+  Sliders 
 } from 'lucide-react';
 import { 
   fetchStreamingStatus, 
@@ -19,7 +13,7 @@ import {
   stopStreaming, 
   setStreamingScenario, 
   injectStreamingFault,
-  resetDemoData
+  getWebSocketUrl
 } from '../services/api';
 
 const SCENARIOS = [
@@ -64,12 +58,7 @@ export default function StreamingHealthView({ showToast }) {
   useEffect(() => {
     let socket = null;
     try {
-      const envUrl = import.meta.env && import.meta.env.VITE_API_BASE_URL;
-      let wsUrl = "ws://localhost:8000/api/streaming/ws";
-      if (envUrl) {
-        const wsProto = envUrl.startsWith("https") ? "wss" : "ws";
-        wsUrl = envUrl.replace(/^https?:\/\//, `${wsProto}://`) + "/streaming/ws";
-      }
+      const wsUrl = getWebSocketUrl();
       socket = new WebSocket(wsUrl);
       wsRef.current = socket;
 
@@ -138,6 +127,15 @@ export default function StreamingHealthView({ showToast }) {
       if (showToast) showToast(err.message, "error");
     }
   };
+
+  if (loading && !status) {
+    return (
+      <div className="p-12 text-center bg-white border border-slate-200 rounded-2xl shadow-xs">
+        <Radio className="w-8 h-8 text-red-600 animate-pulse mx-auto mb-3" />
+        <p className="text-sm font-bold text-slate-700">Connecting to telemetry streaming engine...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">

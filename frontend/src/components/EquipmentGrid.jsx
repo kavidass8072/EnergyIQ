@@ -105,7 +105,11 @@ export default function EquipmentGrid({ equipmentList, onInspectEquipment, onIns
 
                   {/* Active Fault Tag */}
                   {item.active_fault ? (
-                    <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs flex items-center justify-between text-red-700 font-semibold">
+                    <div 
+                      onClick={() => onInspectAlert && onInspectAlert({ equipment_id: item.equipment_id, likely_fault: item.active_fault, id: item.alert_id || 1 })}
+                      className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs flex items-center justify-between text-red-700 font-semibold cursor-pointer hover:bg-red-100 transition-colors"
+                      title="Click to inspect alert details"
+                    >
                       <span className="truncate flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
                         {item.active_fault}

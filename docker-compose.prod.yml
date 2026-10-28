@@ -26,8 +26,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: energyiq-frontend-nginx
     restart: always
     ports:

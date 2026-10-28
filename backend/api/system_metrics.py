@@ -25,14 +25,16 @@ def get_system_metrics():
     avg_lat = round(sum(metrics_state["latencies_ms"]) / len(metrics_state["latencies_ms"]), 2) if metrics_state["latencies_ms"] else 0.0
     
     conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) as cnt FROM telemetry")
-    total_telemetry = cursor.fetchone()["cnt"]
-    cursor.execute("SELECT COUNT(*) as cnt FROM alerts WHERE status = 'ACTIVE'")
-    active_alerts = cursor.fetchone()["cnt"]
-    cursor.execute("SELECT COUNT(*) as cnt FROM audit_logs")
-    total_audits = cursor.fetchone()["cnt"]
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) as cnt FROM telemetry")
+        total_telemetry = cursor.fetchone()["cnt"]
+        cursor.execute("SELECT COUNT(*) as cnt FROM alerts WHERE status = 'ACTIVE'")
+        active_alerts = cursor.fetchone()["cnt"]
+        cursor.execute("SELECT COUNT(*) as cnt FROM audit_logs")
+        total_audits = cursor.fetchone()["cnt"]
+    finally:
+        conn.close()
     
     stream_status = streaming_manager.get_status()
     

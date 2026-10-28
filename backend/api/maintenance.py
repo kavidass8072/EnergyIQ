@@ -76,6 +76,12 @@ def create_maintenance_task(task: MaintenanceTaskCreate):
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         due_str = task.due_date if task.due_date else (datetime.datetime.now() + datetime.timedelta(days=2)).strftime("%Y-%m-%d %H:%M:%S")
         
+        # Validate linked alert if provided
+        if task.linked_alert_id:
+            cursor.execute("SELECT id FROM alerts WHERE id = ?", (task.linked_alert_id,))
+            if not cursor.fetchone():
+                raise HTTPException(status_code=404, detail=f"Linked alert with ID {task.linked_alert_id} not found")
+
         cursor.execute("""
             INSERT INTO maintenance_tasks (
                 timestamp, equipment_id, equipment_type, priority, issue_description,

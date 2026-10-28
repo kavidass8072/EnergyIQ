@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldAlert, Filter, CheckCircle2, AlertTriangle, Eye, AlertOctagon, Search } from 'lucide-react';
+import { ShieldAlert, Eye, Search } from 'lucide-react';
 
 export default function AlertsView({ alerts, onInspectAlert }) {
   const [statusTab, setStatusTab] = useState('ALL');

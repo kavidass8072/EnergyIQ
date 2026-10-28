@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import Sidebar from './components/Sidebar';
 import TopNavbar from './components/TopNavbar';
 import Toast from './components/Toast';
@@ -31,8 +31,7 @@ import {
   fetchAllEquipment, 
   fetchAlerts,
   clearAuthToken,
-  fetchCurrentUser,
-  fetchStreamingStatus
+  getWebSocketUrl
 } from './services/api';
 
 import { RefreshCw } from 'lucide-react';
@@ -76,7 +75,7 @@ export default function App() {
     }, 4000);
   };
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!currentUser) return;
     try {
       const [sumData, flowData, eqData, alertData] = await Promise.all([
@@ -96,13 +95,25 @@ export default function App() {
       console.error("Dashboard loading error:", err);
       setLoading(false);
     }
-  };
+  }, [currentUser]);
+
+  // Handle expired authentication sessions
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      showToast('Session expired. Please sign in again.', 'warning');
+      setCurrentUser(null);
+    };
+    window.addEventListener('energyiq-auth-expired', handleAuthExpired);
+    return () => {
+      window.removeEventListener('energyiq-auth-expired', handleAuthExpired);
+    };
+  }, []);
 
   useEffect(() => {
     if (currentUser) {
       loadDashboardData();
     }
-  }, [currentUser]);
+  }, [currentUser, loadDashboardData]);
 
   // Periodic Auto-refresh interval (every 15s if enabled)
   useEffect(() => {
@@ -115,21 +126,18 @@ export default function App() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [autoRefresh, currentUser]);
+  }, [autoRefresh, currentUser, loadDashboardData]);
 
   // WebSocket Streaming connection setup
   useEffect(() => {
     if (!currentUser) return;
 
     let socket = null;
+    let reconnectTimer = null;
+
     const connectWS = () => {
       try {
-        const envUrl = import.meta.env && import.meta.env.VITE_API_BASE_URL;
-        let wsUrl = "ws://localhost:8000/api/streaming/ws";
-        if (envUrl) {
-          const wsProto = envUrl.startsWith("https") ? "wss" : "ws";
-          wsUrl = envUrl.replace(/^https?:\/\//, `${wsProto}://`) + "/streaming/ws";
-        }
+        const wsUrl = getWebSocketUrl();
         socket = new WebSocket(wsUrl);
         wsRef.current = socket;
 
@@ -147,19 +155,21 @@ export default function App() {
                 loadDashboardData();
               }
             }
-          } catch (e) {}
+          } catch (err) {
+            console.debug("Malformed streaming frame:", err);
+          }
         };
 
         socket.onclose = () => {
           setWsConnected(false);
           // Reconnect attempt after 5s
-          setTimeout(connectWS, 5000);
+          reconnectTimer = setTimeout(connectWS, 5000);
         };
 
         socket.onerror = () => {
           setWsConnected(false);
         };
-      } catch (e) {
+      } catch (err) {
         setWsConnected(false);
       }
     };
@@ -167,9 +177,10 @@ export default function App() {
     connectWS();
 
     return () => {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       if (socket) socket.close();
     };
-  }, [currentUser]);
+  }, [currentUser, loadDashboardData]);
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';

@@ -20,11 +20,9 @@ def get_connection():
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
-def init_db():
-    conn = get_connection()
+def _init_db_tables(conn):
     conn.execute("PRAGMA journal_mode = WAL;")
     cursor = conn.cursor()
-    
     # 1. Telemetry Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS telemetry (
@@ -83,7 +81,8 @@ def init_db():
         status TEXT NOT NULL DEFAULT 'UPCOMING',
         assigned_technician TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        due_date TEXT NOT NULL
+        due_date TEXT NOT NULL,
+        FOREIGN KEY (linked_alert_id) REFERENCES alerts(id) ON DELETE SET NULL
     );
     """)
 
@@ -280,7 +279,13 @@ def init_db():
             """, m)
 
     conn.commit()
-    conn.close()
+
+def init_db():
+    conn = get_connection()
+    try:
+        _init_db_tables(conn)
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     init_db()

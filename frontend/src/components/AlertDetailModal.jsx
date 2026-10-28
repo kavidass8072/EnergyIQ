@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { 
   X, 
-  ShieldAlert, 
   CheckCircle, 
   Wrench, 
   AlertTriangle, 
@@ -243,6 +242,17 @@ export default function AlertDetailModal({ alert, onClose, onAlertReviewed, show
               <span className="px-2 py-1 bg-emerald-50 text-emerald-800 rounded border border-emerald-200 font-bold">Human Review</span>
             </div>
           </div>
+        </div>
+
+        {/* Operator Resolution Notes Input */}
+        <div className="px-6 py-2.5 bg-slate-50 border-t border-slate-200">
+          <input
+            type="text"
+            placeholder="Operator review / resolution notes (optional)..."
+            value={resolutionNotes}
+            onChange={(e) => setResolutionNotes(e.target.value)}
+            className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-red-500"
+          />
         </div>
 
         {/* Action Buttons Footer */}

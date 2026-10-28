@@ -14,20 +14,14 @@ def seed_database_pipeline(days: int = 60, force_reseed: bool = False):
     """
     init_db()
     conn = get_connection()
-    cursor = conn.cursor()
-    
-    # Check if already seeded
-    cursor.execute("SELECT COUNT(*) FROM telemetry")
-    count = cursor.fetchone()[0]
-    if count > 0 and not force_reseed:
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM telemetry")
+        count = cursor.fetchone()[0]
+        if count > 0 and not force_reseed:
+            return count
+    finally:
         conn.close()
-        return count
-        
-    cursor.execute("DELETE FROM telemetry")
-    cursor.execute("DELETE FROM alerts")
-    cursor.execute("DELETE FROM maintenance_tasks")
-    cursor.execute("DELETE FROM app_settings")
-    conn.commit()
     
     csv_path = os.path.join(os.path.dirname(__file__), "..", "..", "data", "synthetic", "campus_telemetry.csv")
     if not os.path.exists(csv_path) or force_reseed:
@@ -97,49 +91,57 @@ def seed_database_pipeline(days: int = 60, force_reseed: bool = False):
                 'ACTIVE'
             ))
             
-    cursor.executemany("""
-    INSERT INTO telemetry (
-        timestamp, equipment_id, equipment_type, energy_kwh, operating_state,
-        production_output, solar_generation_kwh, battery_soc, grid_consumption_kwh,
-        temperature, maintenance_days, maintenance_status, is_anomaly, fault_label,
-        anomaly_score, severity
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, telemetry_records)
-    
-    cursor.executemany("""
-    INSERT INTO alerts (
-        timestamp, equipment_id, equipment_type, severity, energy_kwh, expected_kwh,
-        dev_pct, operating_state, production_output, maintenance_days, likely_fault,
-        fault_confidence, evidence_json, recommended_action, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, alert_records)
-    
-    # Populate initial maintenance tasks based on high/critical alerts & overdue equipment
-    default_tasks = [
-        ("2026-06-15 08:00:00", "Motor-01", "Motor", "HIGH", "Inspect motor mechanical bearings and alignment due to repeated energy anomalies", 1, "OVERDUE", "Rajesh Kumar", "2026-06-14 10:00:00", "2026-06-15 12:00:00"),
-        ("2026-06-15 09:30:00", "Compressor-01", "Compressor", "HIGH", "Check pressure valve regulator and motor coupling efficiency", 2, "UPCOMING", "Amit Sharma", "2026-06-15 09:30:00", "2026-06-16 14:00:00"),
-        ("2026-06-14 14:00:00", "HVAC-01", "HVAC", "MEDIUM", "Clean condenser coils and check refrigerant pressure level", None, "COMPLETED", "Priya Verma", "2026-06-14 10:00:00", "2026-06-14 14:00:00"),
-        ("2026-06-15 11:00:00", "Pump-01", "Pump", "MEDIUM", "Perform quarterly pump seal inspection and lubrication check", None, "IN_PROGRESS", "Suresh Nair", "2026-06-15 08:00:00", "2026-06-15 17:00:00")
-    ]
-    cursor.executemany("""
-    INSERT INTO maintenance_tasks (
-        timestamp, equipment_id, equipment_type, priority, issue_description,
-        linked_alert_id, status, assigned_technician, created_at, due_date
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, default_tasks)
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM telemetry")
+        cursor.execute("DELETE FROM alerts")
+        cursor.execute("DELETE FROM maintenance_tasks")
+        cursor.execute("DELETE FROM app_settings")
+        
+        cursor.executemany("""
+        INSERT INTO telemetry (
+            timestamp, equipment_id, equipment_type, energy_kwh, operating_state,
+            production_output, solar_generation_kwh, battery_soc, grid_consumption_kwh,
+            temperature, maintenance_days, maintenance_status, is_anomaly, fault_label,
+            anomaly_score, severity
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, telemetry_records)
+        
+        cursor.executemany("""
+        INSERT INTO alerts (
+            timestamp, equipment_id, equipment_type, severity, energy_kwh, expected_kwh,
+            dev_pct, operating_state, production_output, maintenance_days, likely_fault,
+            fault_confidence, evidence_json, recommended_action, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, alert_records)
+        
+        # Populate initial maintenance tasks based on high/critical alerts & overdue equipment
+        default_tasks = [
+            ("2026-06-15 08:00:00", "Motor-01", "Motor", "HIGH", "Inspect motor mechanical bearings and alignment due to repeated energy anomalies", 1, "OVERDUE", "Rajesh Kumar", "2026-06-14 10:00:00", "2026-06-15 12:00:00"),
+            ("2026-06-15 09:30:00", "Compressor-01", "Compressor", "HIGH", "Check pressure valve regulator and motor coupling efficiency", 2, "UPCOMING", "Amit Sharma", "2026-06-15 09:30:00", "2026-06-16 14:00:00"),
+            ("2026-06-14 14:00:00", "HVAC-01", "HVAC", "MEDIUM", "Clean condenser coils and check refrigerant pressure level", None, "COMPLETED", "Priya Verma", "2026-06-14 10:00:00", "2026-06-14 14:00:00"),
+            ("2026-06-15 11:00:00", "Pump-01", "Pump", "MEDIUM", "Perform quarterly pump seal inspection and lubrication check", None, "IN_PROGRESS", "Suresh Nair", "2026-06-15 08:00:00", "2026-06-15 17:00:00")
+        ]
+        cursor.executemany("""
+        INSERT INTO maintenance_tasks (
+            timestamp, equipment_id, equipment_type, priority, issue_description,
+            linked_alert_id, status, assigned_technician, created_at, due_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, default_tasks)
 
-    # Populate default app settings
-    default_settings = [
-        ("electricity_rate", "8.50"),
-        ("currency", "₹"),
-        ("rolling_window_hours", "24"),
-        ("anomaly_sensitivity", "HIGH"),
-        ("auto_refresh_sec", "15"),
-        ("min_alert_duration_hr", "1")
-    ]
-    cursor.executemany("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", default_settings)
-    
-    conn.commit()
-    conn.close()
-    
-    return len(telemetry_records)
+        # Populate default app settings
+        default_settings = [
+            ("electricity_rate", "8.50"),
+            ("currency", "₹"),
+            ("rolling_window_hours", "24"),
+            ("anomaly_sensitivity", "HIGH"),
+            ("auto_refresh_sec", "15"),
+            ("min_alert_duration_hr", "1")
+        ]
+        cursor.executemany("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", default_settings)
+        
+        conn.commit()
+        return len(telemetry_records)
+    finally:
+        conn.close()

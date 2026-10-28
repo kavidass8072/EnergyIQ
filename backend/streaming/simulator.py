@@ -279,11 +279,11 @@ class StreamingManager:
                     anomaly_score, severity
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                record["timestamp"], record["equipment_id"], record["equipment_type"], record["energy_kwh"],
-                record["operating_state"], record["production_output"], record["solar_generation_kwh"],
-                record["battery_soc"], record["grid_consumption_kwh"], record["temperature"],
-                record["maintenance_days"], record["maintenance_status"], record["is_anomaly"],
-                record["fault_label"], record["anomaly_score"], record["severity"]
+                record.get("timestamp"), record.get("equipment_id"), record.get("equipment_type", "Equipment"), record.get("energy_kwh", 0.0),
+                record.get("operating_state", "ON"), record.get("production_output", 50.0), record.get("solar_generation_kwh", 0.0),
+                record.get("battery_soc", 80.0), record.get("grid_consumption_kwh", record.get("energy_kwh", 0.0)), record.get("temperature", 25.0),
+                record.get("maintenance_days", 15), record.get("maintenance_status", "OK"), record.get("is_anomaly", 0),
+                record.get("fault_label", "NORMAL"), record.get("anomaly_score", 0.0), record.get("severity", "NORMAL")
             ))
             
             new_alert = None
@@ -304,9 +304,9 @@ class StreamingManager:
                             recommended_action, status
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')
                     """, (
-                        record["timestamp"], record["equipment_id"], record["equipment_type"],
-                        severity, record["energy_kwh"], round(expected, 2), round(dev_pct, 1),
-                        record["operating_state"], record["production_output"], record["maintenance_days"],
+                        record.get("timestamp"), record.get("equipment_id"), record.get("equipment_type", "Equipment"),
+                        severity, record.get("energy_kwh", 0.0), round(expected, 2), round(dev_pct, 1),
+                        record.get("operating_state", "ON"), record.get("production_output", 50.0), record.get("maintenance_days", 15),
                         fault_res["likely_fault"], fault_res["fault_confidence"], evidence_json,
                         fault_res["recommended_action"]
                     ))
@@ -316,17 +316,17 @@ class StreamingManager:
                         INSERT INTO notifications (timestamp, title, message, severity, read_status, target_role)
                         VALUES (?, ?, ?, ?, 0, 'FACILITY_OPERATOR')
                     """, (
-                        record["timestamp"],
-                        f"Anomaly Alert: {record['equipment_id']}",
-                        f"{fault_res['likely_fault']} detected on {record['equipment_id']} (+{dev_pct:.1f}% energy deviation).",
+                        record.get("timestamp"),
+                        f"Anomaly Alert: {record.get('equipment_id')}",
+                        f"{fault_res['likely_fault']} detected on {record.get('equipment_id')} (+{dev_pct:.1f}% energy deviation).",
                         severity
                     ))
                     
                     new_alert = {
                         "id": alert_id,
-                        "timestamp": record["timestamp"],
-                        "equipment_id": record["equipment_id"],
-                        "equipment_type": record["equipment_type"],
+                        "timestamp": record.get("timestamp"),
+                        "equipment_id": record.get("equipment_id"),
+                        "equipment_type": record.get("equipment_type", "Equipment"),
                         "severity": severity,
                         "likely_fault": fault_res["likely_fault"],
                         "fault_confidence": fault_res["fault_confidence"],

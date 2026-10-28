@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FlaskConical, CheckCircle2, XCircle, Play, RefreshCw, Terminal } from 'lucide-react';
+import { FlaskConical, CheckCircle2, XCircle, Play, RefreshCw } from 'lucide-react';
 import { runEdgeCases } from '../services/api';
 
 export default function EdgeCaseWorkbenchView() {

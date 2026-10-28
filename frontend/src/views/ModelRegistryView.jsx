@@ -2,15 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   Cpu, 
   CheckCircle2, 
-  AlertTriangle, 
   RefreshCw, 
   Layers, 
   Activity, 
-  Sliders, 
-  Zap, 
-  Gauge, 
-  ShieldCheck, 
-  FileText 
+  Zap 
 } from 'lucide-react';
 import { fetchModelRegistry, activateModel, fetchModelDrift } from '../services/api';
 

@@ -1,0 +1,88 @@
+{
+  "step_1_system_init": {
+    "status": "PASS",
+    "latency_ms": 43.84
+  },
+  "step_2_authentication": {
+    "status": "PASS",
+    "latency_ms": 94.84,
+    "user": "admin"
+  },
+  "step_3_rbac_enforcement": {
+    "status": "PASS",
+    "latency_ms": 109.93
+  },
+  "step_4_dashboard_summary": {
+    "status": "PASS",
+    "latency_ms": 17.1,
+    "active_alerts": 129
+  },
+  "step_5_equipment_inspection": {
+    "status": "PASS",
+    "asset_inspected": "Compressor-01",
+    "latency_ms": 18.08
+  },
+  "step_6_streaming_status": {
+    "status": "PASS",
+    "sim_status": false
+  },
+  "step_7_telemetry_contract": {
+    "status": "PASS",
+    "latency_ms": 5.36
+  },
+  "step_8_fault_injection": {
+    "status": "PASS",
+    "fault": "Mechanical Resistance",
+    "severity": "HIGH"
+  },
+  "step_9_fault_correlation": {
+    "status": "PASS",
+    "clusters_detected": 2
+  },
+  "step_10_alert_verification": {
+    "status": "PASS",
+    "alert_id": 6816,
+    "likely_fault": "Mechanical Resistance"
+  },
+  "step_11_alert_review": {
+    "status": "PASS",
+    "updated_status": "UNDER_INVESTIGATION"
+  },
+  "step_12_maintenance_creation": {
+    "status": "PASS",
+    "task_id": 261
+  },
+  "step_13_status_transitions": {
+    "status": "PASS",
+    "final_status": "COMPLETED"
+  },
+  "step_14_incident_resolution": {
+    "status": "PASS",
+    "persisted_status": "RESOLVED"
+  },
+  "step_15_analytics": {
+    "status": "PASS",
+    "waste_kwh": 1940.1
+  },
+  "step_16_dq_models": {
+    "status": "PASS",
+    "models_count": 3
+  },
+  "step_17_export": {
+    "status": "PASS",
+    "csv_bytes": 1483
+  },
+  "step_18_search_settings": {
+    "status": "PASS",
+    "results_found": 15
+  },
+  "step_19_database_integrity": {
+    "status": "PASS",
+    "integrity_check": "ok",
+    "foreign_keys": 1
+  },
+  "step_20_recovery_persistence": {
+    "status": "PASS",
+    "readiness": "READY"
+  }
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, AlertTriangle, RefreshCw, CheckCircle2, XCircle, Database, AlertCircle } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, RefreshCw, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { fetchDataQualitySummary } from '../services/api';
 
 export default function DataQualityView() {

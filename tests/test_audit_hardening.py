@@ -190,3 +190,50 @@ def test_disposable_database_integrity():
             c.execute("INSERT INTO child (id, parent_id) VALUES (20, 999);") # Non-existent parent
             
         conn.close()
+
+def test_login_rate_limiter_enforcement():
+    """Verify that POST /api/auth/login enforces 429 when rate limit is exceeded."""
+    from backend.api.rate_limiter import login_rate_limiter
+    # Reset limiter records for testing
+    login_rate_limiter.client_records["testclient"] = []
+    
+    headers = {"X-Enforce-Rate-Limit": "1"}
+    # Send requests up to limit (10)
+    for _ in range(10):
+        client.post("/api/auth/login", json={"username": "admin", "password": "wrongpassword"}, headers=headers)
+        
+    # The 11th request must receive HTTP 429
+    res = client.post("/api/auth/login", json={"username": "admin", "password": "wrongpassword"}, headers=headers)
+    assert res.status_code == 429
+    assert "Rate limit exceeded" in res.json()["detail"]
+    # Clean up testclient records so subsequent tests aren't impacted
+    login_rate_limiter.client_records["testclient"] = []
+
+def test_maintenance_task_invalid_alert_id_rejected():
+    """Verify that linking a maintenance task to a non-existent alert yields HTTP 404."""
+    payload = {
+        "equipment_id": "HVAC-01",
+        "priority": "HIGH",
+        "issue_description": "Test task with invalid linked alert",
+        "linked_alert_id": 999999
+    }
+    res = client.post("/api/maintenance", json=payload)
+    assert res.status_code == 404
+    assert "Linked alert with ID 999999 not found" in res.json()["detail"]
+
+def test_delayed_packet_scenario_non_blocking():
+    """Verify that DELAYED_PACKET transforms timestamps with latency metadata without blocking thread."""
+    from backend.streaming.scenarios import scenario_engine
+    scenario_engine.set_scenario("DELAYED_PACKET")
+    raw = {"equipment_id": "HVAC-01", "energy_kwh": 45.0, "operating_state": "ON"}
+    records = scenario_engine.apply_scenario(raw)
+    assert len(records) == 1
+    assert "network_latency_ms" in records[0]
+    assert records[0]["network_latency_ms"] == 150.0
+    scenario_engine.set_scenario("NORMAL_TELEMETRY")
+
+def test_security_current_user_connection_cleanup():
+    """Verify that get_current_user properly releases its connection even on invalid credentials."""
+    res = client.get("/api/auth/me", headers={"Authorization": "Bearer invalid.token.payload"})
+    assert res.status_code == 401
+

@@ -12,8 +12,10 @@ def get_data_quality_summary():
 @router.get("/history")
 def get_data_quality_history(limit: int = 24):
     conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM data_quality_logs ORDER BY id DESC LIMIT ?", (limit,))
-    rows = cursor.fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM data_quality_logs ORDER BY id DESC LIMIT ?", (limit,))
+        rows = cursor.fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()

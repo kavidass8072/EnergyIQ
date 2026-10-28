@@ -10,11 +10,18 @@ export default function EquipmentView({ equipmentList, selectedEquipmentId, onSe
   const [assetMaintenance, setAssetMaintenance] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  const handleSelectAsset = (assetId) => {
+    setActiveAssetId(assetId);
+    if (onSelectEquipment) {
+      onSelectEquipment(assetId);
+    }
+  };
+
   useEffect(() => {
-    if (selectedEquipmentId) {
+    if (selectedEquipmentId && selectedEquipmentId !== activeAssetId) {
       setActiveAssetId(selectedEquipmentId);
     }
-  }, [selectedEquipmentId]);
+  }, [selectedEquipmentId, activeAssetId]);
 
   useEffect(() => {
     async function loadAssetDetails() {
@@ -58,7 +65,7 @@ export default function EquipmentView({ equipmentList, selectedEquipmentId, onSe
           {equipmentList.map(eq => (
             <button
               key={eq.equipment_id}
-              onClick={() => setActiveAssetId(eq.equipment_id)}
+              onClick={() => handleSelectAsset(eq.equipment_id)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                 activeAssetId === eq.equipment_id
                   ? 'bg-red-600 text-white shadow-xs'

@@ -13,6 +13,7 @@ def get_system_health():
     total_telemetry_cnt = 0
     
     # 1. Test SQLite DB connection & query speed
+    conn = None
     try:
         t0 = time.time()
         conn = get_connection()
@@ -21,11 +22,13 @@ def get_system_health():
         total_telemetry_cnt = cursor.fetchone()["cnt"]
         cursor.execute("SELECT COUNT(*) as cnt FROM alerts WHERE status = 'ACTIVE'")
         active_alerts_cnt = cursor.fetchone()["cnt"]
-        conn.close()
         db_latency_ms = round((time.time() - t0) * 1000.0, 2)
         db_status = "HEALTHY"
     except Exception as e:
         db_status = f"ERROR: {e}"
+    finally:
+        if conn:
+            conn.close()
 
     # 2. Check streaming status
     stream_status = streaming_manager.get_status()
@@ -54,14 +57,17 @@ def get_system_health():
 def get_system_readiness():
     """Readiness probe endpoint for Docker/Kubernetes container orchestrators."""
     db_ok = False
+    conn = None
     try:
         conn = get_connection()
         c = conn.cursor()
         c.execute("SELECT 1")
-        conn.close()
         db_ok = True
     except Exception:
         db_ok = False
+    finally:
+        if conn:
+            conn.close()
         
     ready = db_ok and streaming_manager is not None
     return {
