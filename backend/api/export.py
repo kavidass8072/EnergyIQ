@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api/export", tags=["export"])
 @router.get("/{resource}")
 def export_data_resource(
     resource: str,
-    format: str = Query("json", regex="^(json|csv)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
     limit: int = Query(500, ge=1, le=5000),
     current_user: dict = Depends(RoleChecker(["ADMIN", "FACILITY_OPERATOR", "TECHNICAL_ENGINEER"]))
 ):

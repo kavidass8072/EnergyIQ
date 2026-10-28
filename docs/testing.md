@@ -36,6 +36,7 @@ EnergyIQ employs a multi-layered testing strategy combining:
 | **Milestone 5 Hardening** | `tests/test_milestone5.py` | `test_system_readiness_endpoint`<br>`test_data_export_json_alerts`<br>`test_data_export_csv_telemetry`<br>`test_model_rollback_api`<br>`test_reproducible_experiment_runner_execution`<br>`test_streaming_load_test_execution`<br>`test_rate_limiter_functional_check`<br>`test_export_invalid_resource_denied`<br>`test_export_unauthenticated_denied` | Tests container readiness probes, JSON/CSV export, model rollback, reproducible experiment runner, load test script, and rate limiting. |
 | **Failure Recovery** | `tests/test_failure_recovery.py` | `test_failure_invalid_jwt_token`<br>`test_failure_expired_jwt_token`<br>`test_failure_malformed_telemetry_payload`<br>`test_failure_missing_telemetry_fields`<br>`test_failure_invalid_model_activation_id`<br>`test_failure_invalid_alert_review_status`<br>`test_failure_streaming_invalid_scenario` | Verifies safe HTTP error status codes (401, 404, 400, 422) for invalid inputs, expired tokens, and malformed payloads. |
 | **End-to-End Workflow** | `tests/test_e2e_workflow.py` | `test_full_end_to_end_lifecycle_workflow` | Exercises full user lifecycle: login -> dashboard -> alert review -> maintenance creation -> status completion -> audit verification. |
+| **Comprehensive Milestone 7 E2E** | `tests/test_final_e2e.py` | `test_final_e2e_complete_fault_to_maintenance_workflow` | Validates complete 18-step fault-to-maintenance lifecycle: admin login, streaming tick, fault inject, feature engineering, detection, cooldown alert suppression, correlation, operator triage, maintenance order, engineer health diagnostics, resolution, completion, SQLite persistence, and audit logging. |
 
 ---
 
@@ -67,4 +68,4 @@ EnergyIQ employs a multi-layered testing strategy combining:
 python -m pytest tests/ -v
 ```
 
-*Current Pass Rate*: **75 / 75 PASSED (100% Pass Rate)** in ~10.5 seconds.
+*Current Pass Rate*: **79 / 79 PASSED (100% Pass Rate)** in ~8.98 seconds.
