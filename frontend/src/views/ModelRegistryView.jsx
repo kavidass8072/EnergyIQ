@@ -14,10 +14,14 @@ import {
 } from 'lucide-react';
 import { fetchModelRegistry, activateModel, fetchModelDrift } from '../services/api';
 
-const formatMetric = (val) => {
+const formatMetric = (val, isRate = false) => {
   if (val === undefined || val === null || isNaN(val)) return 'N/A';
   const num = Number(val);
-  return (num <= 1.0 && num > 0 ? num * 100 : num).toFixed(1) + '%';
+  if (isRate) {
+    return (num < 0.1 && num > 0 ? num.toFixed(2) : num.toFixed(1)) + '%';
+  }
+  const scaled = (num > 0 && num <= 1.0) ? num * 100 : num;
+  return scaled.toFixed(1) + '%';
 };
 
 export default function ModelRegistryView({ showToast }) {
@@ -219,10 +223,12 @@ export default function ModelRegistryView({ showToast }) {
                           <span className="text-slate-500 font-semibold">F1 Score:</span>
                           <span className="font-extrabold text-red-600">{formatMetric(model.metrics.f1)}</span>
                         </div>
-                        {model.metrics.false_alarm_rate !== undefined && (
+                        {(model.metrics.false_alarm_rate !== undefined || model.metrics.fpr !== undefined) && (
                           <div className="flex justify-between text-xs">
                             <span className="text-slate-500 font-semibold">False Alarm Rate:</span>
-                            <span className="font-extrabold text-emerald-600">{formatMetric(model.metrics.false_alarm_rate)}</span>
+                            <span className="font-extrabold text-emerald-600">
+                              {formatMetric(model.metrics.false_alarm_rate ?? model.metrics.fpr, true)}
+                            </span>
                           </div>
                         )}
                       </div>

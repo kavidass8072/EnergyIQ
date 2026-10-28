@@ -28,9 +28,9 @@ async def websocket_endpoint(websocket: WebSocket):
         })
         while True:
             data = await websocket.receive_text()
-    except WebSocketDisconnect:
-        streaming_manager.disconnect(websocket)
-    except Exception:
+    except (WebSocketDisconnect, Exception):
+        pass
+    finally:
         streaming_manager.disconnect(websocket)
 
 @router.post("/start")

@@ -22,10 +22,12 @@ def export_data_resource(
     table_name = "maintenance_tasks" if resource == "maintenance" else resource
     
     conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(f"SELECT * FROM {table_name} ORDER BY id DESC LIMIT ?", (limit,))
-    rows = [dict(r) for r in cursor.fetchall()]
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT * FROM {table_name} ORDER BY id DESC LIMIT ?", (limit,))
+        rows = [dict(r) for r in cursor.fetchall()]
+    finally:
+        conn.close()
     
     log_audit_action(current_user["id"], current_user["username"], "EXPORT_DATA", f"/api/export/{resource}", {"format": format, "records": len(rows)})
     

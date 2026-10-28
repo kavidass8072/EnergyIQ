@@ -7,15 +7,17 @@ def compute_correlated_alerts() -> List[Dict[str, Any]]:
     correlated events (e.g. Multiple HVAC over-exertion during high ambient heat).
     """
     conn = get_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT * FROM alerts
-        WHERE status IN ('ACTIVE', 'UNDER_INVESTIGATION')
-        ORDER BY timestamp DESC LIMIT 50
-    """)
-    rows = cursor.fetchall()
-    conn.close()
+    try:
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT * FROM alerts
+            WHERE status IN ('ACTIVE', 'UNDER_INVESTIGATION')
+            ORDER BY timestamp DESC LIMIT 50
+        """)
+        rows = cursor.fetchall()
+    finally:
+        conn.close()
     
     if not rows:
         return []
