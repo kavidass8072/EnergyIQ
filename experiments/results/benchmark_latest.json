@@ -1,10 +1,10 @@
 {
-  "experiment_id": "EXP-20261028_170035",
-  "executed_at": "2026-10-28 17:00:35 UTC",
+  "experiment_id": "EXP-20261028_172331",
+  "executed_at": "2026-10-28 17:23:31 UTC",
   "experiments": [
     {
       "name": "Synthetic Ground-Truth Labeled Benchmark",
-      "execution_duration_sec": 0.946,
+      "execution_duration_sec": 1.045,
       "metrics": {
         "metadata": {
           "dataset_name": "EnergyIQ Synthetic Campus Telemetry",
@@ -73,7 +73,7 @@
     },
     {
       "name": "ASHRAE Public Benchmark (Unsupervised)",
-      "execution_duration_sec": 0.304,
+      "execution_duration_sec": 0.297,
       "metrics": {
         "metadata": {
           "dataset_name": "ASHRAE Great Energy Predictor III (Benchmark Schema)",

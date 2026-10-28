@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-10-28T22:47:43Z",
+  "browser": "Microsoft Edge (Chromium Channel)",
+  "headless": true,
+  "test_results": {
+    "initial_navigation": "PASS",
+    "invalid_login_rejection": "PASS",
+    "operator_role_restrictions": "PASS",
+    "logout_flow": "PASS",
+    "admin_login": "PASS",
+    "dashboard_and_charts": "PASS (5 SVG charts rendered)",
+    "streaming_websocket": "PASS (Ticks received & toggled)",
+    "equipment_view": "PASS",
+    "alert_lifecycle": "PASS",
+    "maintenance_equipment_mapping": "PASS",
+    "model_registry_metrics": "PASS (Valid percentage formatting verified)",
+    "session_refresh_persistence": "PASS",
+    "session_expired_interceptor": "PASS (Clean redirect to login)"
+  },
+  "console_errors_count": 1,
+  "failed_network_requests_count": 0,
+  "http_errors_count": 1,
+  "console_errors": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    }
+  ],
+  "unexpected_http_errors": [
+    {
+      "url": "http://localhost:8000/api/auth/login",
+      "status": 401
+    }
+  ],
+  "all_test_steps_passed": true
+}

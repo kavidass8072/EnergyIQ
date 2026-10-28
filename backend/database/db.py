@@ -86,6 +86,36 @@ def _init_db_tables(conn):
     );
     """)
 
+    # Schema migration: ensure existing maintenance_tasks table has FOREIGN KEY constraint
+    cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='maintenance_tasks'")
+    m_row = cursor.fetchone()
+    if m_row and "FOREIGN KEY" not in m_row[0]:
+        cursor.execute("""
+            CREATE TABLE maintenance_tasks_migration (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                equipment_id TEXT NOT NULL,
+                equipment_type TEXT NOT NULL,
+                priority TEXT NOT NULL,
+                issue_description TEXT NOT NULL,
+                linked_alert_id INTEGER,
+                status TEXT NOT NULL DEFAULT 'UPCOMING',
+                assigned_technician TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                due_date TEXT NOT NULL,
+                FOREIGN KEY (linked_alert_id) REFERENCES alerts(id) ON DELETE SET NULL
+            );
+        """)
+        cursor.execute("""
+            INSERT INTO maintenance_tasks_migration 
+            SELECT id, timestamp, equipment_id, equipment_type, priority, issue_description,
+                   CASE WHEN linked_alert_id IN (SELECT id FROM alerts) THEN linked_alert_id ELSE NULL END,
+                   status, assigned_technician, created_at, due_date
+            FROM maintenance_tasks;
+        """)
+        cursor.execute("DROP TABLE maintenance_tasks;")
+        cursor.execute("ALTER TABLE maintenance_tasks_migration RENAME TO maintenance_tasks;")
+
     # 4. App Settings Table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS app_settings (

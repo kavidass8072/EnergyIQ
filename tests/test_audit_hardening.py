@@ -237,3 +237,18 @@ def test_security_current_user_connection_cleanup():
     res = client.get("/api/auth/me", headers={"Authorization": "Bearer invalid.token.payload"})
     assert res.status_code == 401
 
+def test_maintenance_foreign_key_and_zero_orphans():
+    """Verify that maintenance_tasks table schema defines foreign key and contains zero orphaned references."""
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='maintenance_tasks'")
+        ddl = cursor.fetchone()[0]
+        assert "FOREIGN KEY (linked_alert_id) REFERENCES alerts(id)" in ddl
+        
+        cursor.execute("SELECT COUNT(*) FROM maintenance_tasks WHERE linked_alert_id IS NOT NULL AND linked_alert_id NOT IN (SELECT id FROM alerts)")
+        orphans = cursor.fetchone()[0]
+        assert orphans == 0
+    finally:
+        conn.close()
+

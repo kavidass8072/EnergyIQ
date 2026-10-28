@@ -117,11 +117,19 @@ def seed_database_pipeline(days: int = 60, force_reseed: bool = False):
         """, alert_records)
         
         # Populate initial maintenance tasks based on high/critical alerts & overdue equipment
+        cursor.execute("SELECT id FROM alerts WHERE equipment_id = 'Motor-01' ORDER BY id ASC LIMIT 1")
+        motor_alert = cursor.fetchone()
+        motor_alert_id = motor_alert["id"] if motor_alert else None
+
+        cursor.execute("SELECT id FROM alerts WHERE equipment_id = 'Compressor-01' ORDER BY id ASC LIMIT 1")
+        comp_alert = cursor.fetchone()
+        comp_alert_id = comp_alert["id"] if comp_alert else None
+
         default_tasks = [
-            ("2026-06-15 08:00:00", "Motor-01", "Motor", "HIGH", "Inspect motor mechanical bearings and alignment due to repeated energy anomalies", 1, "OVERDUE", "Rajesh Kumar", "2026-06-14 10:00:00", "2026-06-15 12:00:00"),
-            ("2026-06-15 09:30:00", "Compressor-01", "Compressor", "HIGH", "Check pressure valve regulator and motor coupling efficiency", 2, "UPCOMING", "Amit Sharma", "2026-06-15 09:30:00", "2026-06-16 14:00:00"),
-            ("2026-06-14 14:00:00", "HVAC-01", "HVAC", "MEDIUM", "Clean condenser coils and check refrigerant pressure level", None, "COMPLETED", "Priya Verma", "2026-06-14 10:00:00", "2026-06-14 14:00:00"),
-            ("2026-06-15 11:00:00", "Pump-01", "Pump", "MEDIUM", "Perform quarterly pump seal inspection and lubrication check", None, "IN_PROGRESS", "Suresh Nair", "2026-06-15 08:00:00", "2026-06-15 17:00:00")
+            ("2026-06-15 08:00:00", "Motor-01", "Heavy Motor", "HIGH", "Inspect motor mechanical bearings and alignment due to repeated energy anomalies", motor_alert_id, "OVERDUE", "Rajesh Kumar", "2026-06-14 10:00:00", "2026-06-15 12:00:00"),
+            ("2026-06-15 09:30:00", "Compressor-01", "Industrial Compressor", "HIGH", "Check pressure valve regulator and motor coupling efficiency", comp_alert_id, "UPCOMING", "Amit Sharma", "2026-06-15 09:30:00", "2026-06-16 14:00:00"),
+            ("2026-06-14 14:00:00", "HVAC-01", "Commercial HVAC", "MEDIUM", "Clean condenser coils and check refrigerant pressure level", None, "COMPLETED", "Priya Verma", "2026-06-14 10:00:00", "2026-06-14 14:00:00"),
+            ("2026-06-15 11:00:00", "Pump-01", "Chilled Water Pump", "MEDIUM", "Perform quarterly pump seal inspection and lubrication check", None, "IN_PROGRESS", "Suresh Nair", "2026-06-15 08:00:00", "2026-06-15 17:00:00")
         ]
         cursor.executemany("""
         INSERT INTO maintenance_tasks (

@@ -12,11 +12,11 @@
 
 | Metric | Target | Actual Empirical Result | Status |
 |:---|:---:|:---:|:---:|
-| **Total Tests Executed** | 75+ | **93** | **EXCEEDED** |
-| **Passing Tests** | 100% | **93** | **PASS** |
+| **Total Tests Executed** | 75+ | **94** | **EXCEEDED** |
+| **Passing Tests** | 100% | **94** | **PASS** |
 | **Failing Tests** | 0 | **0** | **PASS** |
 | **Skipped Tests** | 0 | **0** | **PASS** |
-| **Execution Duration** | < 15.0s | **11.02s** | **OPTIMAL** |
+| **Execution Duration** | < 15.0s | **10.60s** | **OPTIMAL** |
 | **Test Pass Rate** | 100% | **100.0%** | **PASS** |
 
 ---
@@ -27,7 +27,7 @@ The test suite spans 18 dedicated test files covering every core subsystem:
 
 | Test Module File | Test Count | Pass | Fail | Subsystem Tested |
 |:---|:---:|:---:|:---:|:---|
-| `tests/test_audit_hardening.py` | 14 | 14 | 0 | SQLite WAL/FK pragmas, baselines, rate limiting, connection cleanup, non-blocking scenarios |
+| `tests/test_audit_hardening.py` | 15 | 15 | 0 | SQLite WAL/FK pragmas, baselines, rate limiting, connection cleanup, zero orphans |
 | `tests/test_alert_correlation.py` | 2 | 2 | 0 | Alert clustering, root cause grouping, correlation API |
 | `tests/test_anomaly_detector.py` | 3 | 3 | 0 | Isolation Forest inference, OFF-state phantom leakage, edge cases |
 | `tests/test_api.py` | 12 | 12 | 0 | Core REST endpoints (health, summary, equipment, alerts, maintenance, settings) |
@@ -46,7 +46,7 @@ The test suite spans 18 dedicated test files covering every core subsystem:
 | `tests/test_streaming.py` | 4 | 4 | 0 | Streaming validator, imputation, streaming manager lifecycle, fault injection |
 | `tests/test_synthetic_generator.py` | 1 | 1 | 0 | Campus 60-day multi-asset realistic telemetry generation |
 | `tests/test_system_health.py` | 1 | 1 | 0 | System health API endpoint validation |
-| **TOTAL** | **93** | **93** | **0** | **All 18 Modules Pass (100%)** |
+| **TOTAL** | **94** | **94** | **0** | **All 18 Modules Pass (100%)** |
 
 ---
 
